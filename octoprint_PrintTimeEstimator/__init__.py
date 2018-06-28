@@ -1,5 +1,6 @@
 # coding=utf-8
 from __future__ import absolute_import
+from __future__ import division
 
 ### (Don't forget to remove me)
 # This is a basic skeleton for your plugin's __init__.py. You probably want to adjust the class name of your plugin
@@ -14,6 +15,9 @@ import octoprint.filemanager.storage
 from octoprint.printer.estimation import PrintTimeEstimator
 from octoprint.filemanager.analysis import GcodeAnalysisQueue
 import logging
+import bisect
+import subprocess
+import json
 
 class GCodeAnalyserEstimator(PrintTimeEstimator):
   """Uses previous generated analysis to estimate print time remaining."""
@@ -23,18 +27,56 @@ class GCodeAnalyserEstimator(PrintTimeEstimator):
     #print(printer.get_current_job())
     path = printer.get_current_job()["file"]["path"]
     origin = printer.get_current_job()["file"]["origin"]
-    #file_manager.set_additional_metadata(self.origin, self.path, "foo", "bar")
-    #print(file_manager.get_metadata(self.origin, self.path))
-    #print(self.path)
+    metadata = file_manager.get_metadata(origin, path)
+    self._analysis = None
+    if 'GCodeAnalyserAnalysis' in metadata:
+      self._analysis = metadata["GCodeAnalyserAnalysis"]
+    print(self._analysis)
     self._logger = logging.getLogger(__name__)
 
-  def estimate(self, progress, printTime, cleanedPrintTime,  statisticalTotalPrintTime, statisticalTotalPrintTimeType):
-    # always reports 3h as printTimeLeft
-    return 3 * 60 * 60, "GCodeAnalyser"
+  def estimate(self, progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType):
+    try:
+      # The progress is a sorted list of pairs (filepos, progress).
+      # It maps from filepos to actual printing progress.
+      # Both are in the range [0,1]
+      ge = bisect.bisect_left(self._analysis, (progress, 0))
+      ge_pair = (1, 1) # End of file, end of print
+      if ge != len(self._analysis):
+        ge_pair = self._analysis[ge]
+      lt = ge - 1
+      lt_pair = (0, 0) # Start of file, start of print
+      if lt:
+        lt_pair = self._analysis[lt]
+      filepos_range = ge_pair[0] - lt_pair[0]
+      # range_ratio 0 means that we're at lt_pair, 1 means that we're at ge_pair
+      if filepos_range == 0:
+        return progress*60*60, "GCodeAnalyser"
+      range_ratio = (progress-lt_pair[0]) / filepos_range
+      actual_progress = (1-range_ratio)*lt_pair[1] + range_ratio*ge_pair[1]
+      return 2*60*60, "GCodeAnalyser"
+    except Exception as e:
+      # Can't read GCodeAnalyser analysis, maybe it just doesn't exist.
+      return super(GCodeAnalyserEstimator, self).estimate(
+          progress, printTime, cleanedPrintTime,
+          statisticalTotalPrintTime, statisticalTotalPrintTimeType)
 
 class GCodeAnalyserAnalysisQueue(GcodeAnalysisQueue):
   """Generate an analysis to use for printing time remaining later."""
-  pass
+  def __init__(self, finished_callback, plugin):
+    super(GCodeAnalyserAnalysisQueue, self).__init__(finished_callback)
+    self._plugin = plugin
+
+  def _do_analysis(self, high_priority=False):
+    args = ["node", "run.js", self._current.absolute_path]
+    command = " ".join(args)
+    self._logger.info("GCodeAnalyser running: {}".format(command))
+    # Because in version 0.1.5 the name was changed in sarge.
+    results = subprocess.check_output(args)
+    #print(json.loads(results))
+    self._plugin._file_manager.set_additional_metadata(self._current.location, self._current.path, "GCodeAnalyserAnalysis", json.loads(results))
+
+    super_ret = super(GCodeAnalyserAnalysisQueue, self)._do_analysis(high_priority)
+    return super_ret
 
 class PrintTimeEstimatorPlugin(octoprint.plugin.SettingsPlugin,
                                octoprint.plugin.AssetPlugin,
@@ -61,7 +103,8 @@ class PrintTimeEstimatorPlugin(octoprint.plugin.SettingsPlugin,
 
   ##~~ Gcode Analysis Hook
   def custom_gcode_analysis_queue(self, *args, **kwargs):
-    return dict(gcode=GCodeAnalyserAnalysisQueue)
+    return dict(gcode=lambda finished_callback: GCodeAnalyserAnalysisQueue(
+        finished_callback, self))
   def custom_estimation_factory(self, *args, **kwargs):
     return lambda job_type: GCodeAnalyserEstimator(
         job_type, self._printer, self._file_manager)
