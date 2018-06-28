@@ -1,0 +1,4 @@
+include README.md
+recursive-include octoprint_PrintTimeEstimator/templates *
+recursive-include octoprint_PrintTimeEstimator/translations *
+recursive-include octoprint_PrintTimeEstimator/static *
