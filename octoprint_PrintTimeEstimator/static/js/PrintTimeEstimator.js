@@ -23,10 +23,17 @@ $(function() {
           return self.originalFormatFuzzyPrintTime.apply(null, arguments);
         }
       }
+
+      self.exactDurations.subscribe(function (newValue) {
+        self.printerStateViewModel.estimatedPrintTime.valueHasMutated();
+        self.printerStateViewModel.lastPrintTime.valueHasMutated();
+        self.printerStateViewModel.printTimeLeft.valueHasMutated();
+      })
+
     }
 
     self.addAnalyzer = function() {
-      self.analyzers.push({command: "", enabled: false});
+      self.analyzers.push({command: "", enabled: true});
     }
 
     self.removeAnalyzer = function(analyzer) {
