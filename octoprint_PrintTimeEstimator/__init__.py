@@ -81,7 +81,6 @@ class GCodeAnalyserEstimator(PrintTimeEstimator):
         print_time_origin = "linear"
       return remaining_print_time, print_time_origin
     except Exception as e:
-      return 5*60*60, "linear"
       return super(GCodeAnalyserEstimator, self).estimate(
           progress, printTime, cleanedPrintTime,
           statisticalTotalPrintTime, statisticalTotalPrintTimeType)
