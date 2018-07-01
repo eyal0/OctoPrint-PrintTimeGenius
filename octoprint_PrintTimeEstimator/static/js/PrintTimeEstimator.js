@@ -12,9 +12,11 @@ $(function() {
     self.printerStateViewModel = parameters[1];
 
     self.onBeforeBinding = function() {
-      self.settings = self.settingsViewModel.settings;
-      self.analyzers = self.settings.plugins.PrintTimeEstimator.analyzers;
-      self.exactDurations = self.settings.plugins.PrintTimeEstimator.exactDurations;
+      settings = self.settingsViewModel.settings;
+      printTimeEstimatorSettings = settings.plugins.PrintTimeEstimator;
+      self.analyzers = printTimeEstimatorSettings.analyzers;
+      self.exactDurations = printTimeEstimatorSettings.exactDurations;
+      self.enableOctoPrintAnalyzer = printTimeEstimatorSettings.enableOctoPrintAnalyzer;
       self.originalFormatFuzzyPrintTime = formatFuzzyPrintTime;
       formatFuzzyPrintTime = function() {
         if (self.exactDurations()) {

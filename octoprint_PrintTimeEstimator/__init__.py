@@ -95,10 +95,13 @@ class GCodeAnalyserAnalysisQueue(GcodeAnalysisQueue):
 
   def _do_analysis(self, high_priority=False):
     logger = self._plugin._logger
-    logger.info("Running built-in analysis.")
-    results = super(GCodeAnalyserAnalysisQueue, self)._do_analysis(high_priority)
-    logger.info("Result: {}".format(results))
-    self._finished_callback(self._current, results)
+    if self._plugin._settings.get(["enableOctoPrintAnalyzer"]):
+      logger.info("Running built-in analysis.")
+      results = super(GCodeAnalyserAnalysisQueue, self)._do_analysis(high_priority)
+      logger.info("Result: {}".format(results))
+      self._finished_callback(self._current, results)
+    else:
+      logger.info("Not running built-in analysis.")
     for analyzer in self._plugin._settings.get(["analyzers"]):
       command = analyzer["command"].format(gcode=self._current.absolute_path)
       if not analyzer["enabled"]:
@@ -127,7 +130,8 @@ class PrintTimeEstimatorPlugin(octoprint.plugin.SettingsPlugin,
   def get_settings_defaults(self):
     return dict(
         analyzers=[],
-        exactDurations=True
+        exactDurations=True,
+        enableOctoPrintAnalyzer=True
     )
 
   ##~~ StartupPlugin API
