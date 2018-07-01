@@ -1,0 +1,26 @@
+<form class="form-horizontal">
+  <div class="control-group">
+    <h3>{{ _('Analyzers') }}</h3>
+    <div class="row-fluid">
+      <h4 class="span10">
+        <div class="span11">{{ _('Command') }}</div>
+        <div class="span1">{{ _('Enabled') }}</div>
+    </div>
+    <div data-bind="foreach: settings.plugins.printtimeestimator.analyzers">
+      <div style="margin-top: 5px">
+        <div class="span10">
+          <input type="text" class="span11 text-left" data-bind="value: command">
+          <input type="checkbox" style="margin-left: 20px" data-bind="value: enabled">
+        </div>
+        <div class="span2">
+          <a title="Remove profile" class="btn btn-danger" data-bind="click: $parent.removeCommand"><i class="fa fa-trash-o"></i></a>
+        </div>
+      </div>
+    </div>
+    <div class="row-fluid">
+      <div class="offset10 span2" style="margin-top: 5px">
+        <a title="Add Command" class="btn btn-primary" data-bind="click: addCommand"><i class="fa fa-plus"></i></a>
+      </div>
+    </div>
+  </div>
+</form>
