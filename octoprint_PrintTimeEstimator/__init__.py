@@ -95,6 +95,7 @@ class GCodeAnalyserAnalysisQueue(GcodeAnalysisQueue):
 
   def _do_analysis(self, high_priority=False):
     logger = self._plugin._logger
+    results = None
     if self._plugin._settings.get(["enableOctoPrintAnalyzer"]):
       logger.info("Running built-in analysis.")
       results = super(GCodeAnalyserAnalysisQueue, self)._do_analysis(high_priority)
