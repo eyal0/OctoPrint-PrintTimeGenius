@@ -6,20 +6,20 @@
         <div class="span11">{{ _('Command') }}</div>
         <div class="span1">{{ _('Enabled') }}</div>
     </div>
-    <div data-bind="foreach: settings.plugins.printtimeestimator.analyzers">
-      <div style="margin-top: 5px">
+    <div style="margin-top: 5px" data-bind="foreach: analyzers">
+      <div>
         <div class="span10">
           <input type="text" class="span11 text-left" data-bind="value: command">
           <input type="checkbox" style="margin-left: 20px" data-bind="value: enabled">
         </div>
         <div class="span2">
-          <a title="Remove profile" class="btn btn-danger" data-bind="click: $parent.removeCommand"><i class="fa fa-trash-o"></i></a>
+          <a title="Remove profile" class="btn btn-danger" data-bind="click: $parent.removeAnalyzer"><i class="fa fa-trash-o"></i></a>
         </div>
       </div>
     </div>
     <div class="row-fluid">
       <div class="offset10 span2" style="margin-top: 5px">
-        <a title="Add Command" class="btn btn-primary" data-bind="click: addCommand"><i class="fa fa-plus"></i></a>
+        <a title="Add Analyzer" class="btn btn-primary" data-bind="click: addAnalyzer"><i class="fa fa-plus"></i></a>
       </div>
     </div>
   </div>

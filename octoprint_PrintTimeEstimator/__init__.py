@@ -18,6 +18,7 @@ import logging
 import bisect
 import subprocess
 import json
+import shlex
 
 class GCodeAnalyserEstimator(PrintTimeEstimator):
   """Uses previous generated analysis to estimate print time remaining."""
@@ -25,14 +26,10 @@ class GCodeAnalyserEstimator(PrintTimeEstimator):
   def __init__(self, job_type, printer, file_manager):
     super(GCodeAnalyserEstimator, self).__init__(job_type)
     #print(printer.get_current_job())
-    path = printer.get_current_job()["file"]["path"]
-    origin = printer.get_current_job()["file"]["origin"]
-    metadata = file_manager.get_metadata(origin, path)
-    self._analysis = None
-    if 'GCodeAnalyserAnalysis' in metadata:
-      self._analysis = metadata["GCodeAnalyserAnalysis"]
-    print(self._analysis)
-    self._logger = logging.getLogger(__name__)
+    self._path = printer.get_current_job()["file"]["path"]
+    self._origin = printer.get_current_job()["file"]["origin"]
+    self._file_manager = file_manager
+    self._logger = logging.getLogger("octoprint.plugins.GCodeAnalyserEstimator")
     # Assume we are heating until we see that the difference between printTime and cleanedPrintTime is stable
 
   def estimate(self, progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType):
@@ -40,17 +37,20 @@ class GCodeAnalyserEstimator(PrintTimeEstimator):
       # The progress is a sorted list of pairs (filepos, progress).
       # It maps from filepos to actual printing progress.
       # All values are in terms of the final values of filepos and progress.
-      last_pair = self._analysis[-1]
+      print(self._file_manager)
+      print(self._file_manager.get_metadata(self._origin, self._path))
+      filepos_to_progress = self._file_manager.get_metadata(self._origin, self._path)["analysis"]["progress"]
+      last_pair = filepos_to_progress[-1]
       max_filepos = last_pair[0] # End of file, end of print
       current_filepos = progress*max_filepos
-      ge = bisect.bisect_left(self._analysis, [current_filepos, 0])
+      ge = bisect.bisect_left(filepos_to_progress, [current_filepos, 0])
       ge_pair = last_pair # End of file, end of print
-      if ge != len(self._analysis):
-        ge_pair = self._analysis[ge]
+      if ge != len(filepos_to_progress):
+        ge_pair = filepos_to_progress[ge]
       lt = ge - 1
-      lt_pair = self._analysis[0] # Start of file, start of print
+      lt_pair = filepos_to_progress[0] # Start of file, start of print
       if lt:
-        lt_pair = self._analysis[lt]
+        lt_pair = filepos_to_progress[lt]
       filepos_range = ge_pair[0] - lt_pair[0]
       # range_ratio 0 means that we're at lt_pair, 1 means that we're at ge_pair
       if filepos_range == 0:
@@ -91,19 +91,26 @@ class GCodeAnalyserAnalysisQueue(GcodeAnalysisQueue):
   def __init__(self, finished_callback, plugin):
     super(GCodeAnalyserAnalysisQueue, self).__init__(finished_callback)
     self._plugin = plugin
+    self._logger = logging.getLogger("octoprint.plugins.GCodeAnalyserAnalysisQueue")
 
   def _do_analysis(self, high_priority=False):
-    args = ["node", "run.js", self._current.absolute_path]
-    command = " ".join(args)
-    self._logger.info("GCodeAnalyser running: {}".format(command))
-    # Because in version 0.1.5 the name was changed in sarge.
-    results = subprocess.check_output(args)
-    #print(json.loads(results))
-    self._plugin._file_manager.set_additional_metadata(self._current.location, self._current.path, "GCodeAnalyserAnalysis", json.loads(results))
-
-    super_ret = super(GCodeAnalyserAnalysisQueue, self)._do_analysis(high_priority)
-    print(super_ret)
-    return super_ret
+    self._logger.info("Running built-in analysis.")
+    results = super(GCodeAnalyserAnalysisQueue, self)._do_analysis(high_priority)
+    self._logger.info("Result: {}".format(results))
+    self._finished_callback(self._current, results)
+    for analyzer in self._plugin._settings.get(["analyzers"]):
+      command = analyzer["command"].format(gcode=self._current.absolute_path)
+      self._logger.info("Running: {}".format(command))
+      try:
+        results_text = subprocess.check_output(shlex.split(command))
+        new_results = json.loads(results_text)
+        self._logger.info("Result: {}".format(new_results))
+        results.update(new_results)
+        self._logger.info("Merged result: {}".format(results))
+        self._finished_callback(self._current, results)
+      except Exception as e:
+        self._logger.warning("Failed to run '{}'".format(command), exc_info=e)
+    return results
 
 class PrintTimeEstimatorPlugin(octoprint.plugin.SettingsPlugin,
                                octoprint.plugin.AssetPlugin,
@@ -114,7 +121,7 @@ class PrintTimeEstimatorPlugin(octoprint.plugin.SettingsPlugin,
 
   def get_settings_defaults(self):
     return dict(
-      # put your plugin's default settings here
+      analyzers=[]
     )
 
   ##~~ AssetPlugin mixin
