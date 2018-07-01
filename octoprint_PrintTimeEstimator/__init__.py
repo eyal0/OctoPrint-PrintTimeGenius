@@ -23,16 +23,16 @@ import shlex
 class GCodeAnalyserEstimator(PrintTimeEstimator):
   """Uses previous generated analysis to estimate print time remaining."""
 
-  def __init__(self, job_type, printer, file_manager):
+  def __init__(self, job_type, printer, file_manager, logger):
     super(GCodeAnalyserEstimator, self).__init__(job_type)
     #print(printer.get_current_job())
     self._path = printer.get_current_job()["file"]["path"]
     self._origin = printer.get_current_job()["file"]["origin"]
     self._file_manager = file_manager
-    self._logger = logging.getLogger("octoprint.plugins.GCodeAnalyserEstimator")
-    # Assume we are heating until we see that the difference between printTime and cleanedPrintTime is stable
+    self._logger = logger
 
   def estimate(self, progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType):
+    result = None
     try:
       # The progress is a sorted list of pairs (filepos, progress).
       # It maps from filepos to actual printing progress.
@@ -61,10 +61,10 @@ class GCodeAnalyserEstimator(PrintTimeEstimator):
       actual_progress /= last_pair[1]
       # actual_progress is the percentage of total time, in the range [0,1]
       # Convert it to the actual time remaining
-      print("cleaned is %f" % cleanedPrintTime)
-      print("printTime is %f" % printTime)
-      print("statisticalTotalPrintTime is %f" % statisticalTotalPrintTime)
-      print("actual_progress is %f" % actual_progress)
+      #print("cleaned is %f" % cleanedPrintTime)
+      #print("printTime is %f" % printTime)
+      #print("statisticalTotalPrintTime is %f" % statisticalTotalPrintTime)
+      #print("actual_progress is %f" % actual_progress)
       print_time_origin = "linear"
       use_estimate = 1
 
@@ -72,48 +72,51 @@ class GCodeAnalyserEstimator(PrintTimeEstimator):
       total_print_time += printTime - cleanedPrintTime # Add in the heating time
       remaining_print_time = total_print_time - printTime
       print_time_origin = "estimate"
-      print("assuming total print time is: %f" % total_print_time)
+      #print("assuming total print time is: %f" % total_print_time)
       if cleanedPrintTime < 30 and actual_progress < 0.01:
         # We're just starting, maybe heating, so we'll just report use the total print time
         use_estimate = max(cleanedPrintTime/30, actual_progress/0.01)
         remaining_print_time = (use_estimate*remaining_print_time +
                                 (1-use_estimate)*(statisticalTotalPrintTime - printTime))
         print_time_origin = "linear"
-      return remaining_print_time, print_time_origin
+      result = remaining_print_time, print_time_origin
     except Exception as e:
-      return super(GCodeAnalyserEstimator, self).estimate(
+      result = super(GCodeAnalyserEstimator, self).estimate(
           progress, printTime, cleanedPrintTime,
           statisticalTotalPrintTime, statisticalTotalPrintTimeType)
+    self._logger.debug("{}, {}, {}".format(printTime, cleanedPrintTime, result[0]))
+    return result
 
 class GCodeAnalyserAnalysisQueue(GcodeAnalysisQueue):
   """Generate an analysis to use for printing time remaining later."""
   def __init__(self, finished_callback, plugin):
     super(GCodeAnalyserAnalysisQueue, self).__init__(finished_callback)
     self._plugin = plugin
-    self._logger = logging.getLogger("octoprint.plugins.GCodeAnalyserAnalysisQueue")
 
   def _do_analysis(self, high_priority=False):
-    self._logger.info("Running built-in analysis.")
+    logger = self._plugin._logger
+    logger.info("Running built-in analysis.")
     results = super(GCodeAnalyserAnalysisQueue, self)._do_analysis(high_priority)
-    self._logger.info("Result: {}".format(results))
+    logger.info("Result: {}".format(results))
     self._finished_callback(self._current, results)
     for analyzer in self._plugin._settings.get(["analyzers"]):
       command = analyzer["command"].format(gcode=self._current.absolute_path)
-      self._logger.info("Running: {}".format(command))
+      logger.info("Running: {}".format(command))
       try:
         results_text = subprocess.check_output(shlex.split(command))
         new_results = json.loads(results_text)
-        self._logger.info("Result: {}".format(new_results))
+        logger.info("Result: {}".format(new_results))
         results.update(new_results)
-        self._logger.info("Merged result: {}".format(results))
+        logger.info("Merged result: {}".format(results))
         self._finished_callback(self._current, results)
       except Exception as e:
-        self._logger.warning("Failed to run '{}'".format(command), exc_info=e)
+        logger.warning("Failed to run '{}'".format(command), exc_info=e)
     return results
 
 class PrintTimeEstimatorPlugin(octoprint.plugin.SettingsPlugin,
                                octoprint.plugin.AssetPlugin,
-                               octoprint.plugin.TemplatePlugin):
+                               octoprint.plugin.TemplatePlugin,
+                               octoprint.plugin.StartupPlugin):
   def __init__(self):
     self._logger = logging.getLogger(__name__)
   ##~~ SettingsPlugin mixin
@@ -123,6 +126,20 @@ class PrintTimeEstimatorPlugin(octoprint.plugin.SettingsPlugin,
         analyzers=[],
         exactDurations=True
     )
+
+  ##~~ StartupPlugin API
+
+  def on_startup(self, host, port):
+    # setup our custom logger
+    logging_handler = logging.handlers.RotatingFileHandler(self._settings.get_plugin_logfile_path(postfix="engine"), maxBytes=2*1024*1024)
+    logging_handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
+    logging_handler.setLevel(logging.DEBUG)
+
+    self._logger.addHandler(logging_handler)
+    #self._logger.setLevel(logging.DEBUG if self._settings.get_boolean(["debug_logging"]) else logging.CRITICAL)
+    self._logger.setLevel(logging.DEBUG)
+    self._logger.propagate = False
+
 
   ##~~ AssetPlugin mixin
 
@@ -141,7 +158,7 @@ class PrintTimeEstimatorPlugin(octoprint.plugin.SettingsPlugin,
         finished_callback, self))
   def custom_estimation_factory(self, *args, **kwargs):
     return lambda job_type: GCodeAnalyserEstimator(
-        job_type, self._printer, self._file_manager)
+        job_type, self._printer, self._file_manager, self._logger)
 
   ##~~ Softwareupdate hook
 
