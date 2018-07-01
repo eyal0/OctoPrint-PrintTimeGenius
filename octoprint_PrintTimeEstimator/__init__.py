@@ -101,6 +101,9 @@ class GCodeAnalyserAnalysisQueue(GcodeAnalysisQueue):
     self._finished_callback(self._current, results)
     for analyzer in self._plugin._settings.get(["analyzers"]):
       command = analyzer["command"].format(gcode=self._current.absolute_path)
+      if not analyzer["enabled"]:
+        logger.info("Disabled: {}".format(command))
+        continue
       logger.info("Running: {}".format(command))
       try:
         results_text = subprocess.check_output(shlex.split(command))
