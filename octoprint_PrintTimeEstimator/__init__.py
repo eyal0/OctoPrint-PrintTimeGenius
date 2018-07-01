@@ -37,8 +37,8 @@ class GCodeAnalyserEstimator(PrintTimeEstimator):
       # The progress is a sorted list of pairs (filepos, progress).
       # It maps from filepos to actual printing progress.
       # All values are in terms of the final values of filepos and progress.
-      print(self._file_manager)
-      print(self._file_manager.get_metadata(self._origin, self._path))
+      #print(self._file_manager)
+      #print(self._file_manager.get_metadata(self._origin, self._path))
       filepos_to_progress = self._file_manager.get_metadata(self._origin, self._path)["analysis"]["progress"]
       last_pair = filepos_to_progress[-1]
       max_filepos = last_pair[0] # End of file, end of print
@@ -121,7 +121,8 @@ class PrintTimeEstimatorPlugin(octoprint.plugin.SettingsPlugin,
 
   def get_settings_defaults(self):
     return dict(
-      analyzers=[]
+        analyzers=[],
+        exactDurations=True
     )
 
   ##~~ AssetPlugin mixin
