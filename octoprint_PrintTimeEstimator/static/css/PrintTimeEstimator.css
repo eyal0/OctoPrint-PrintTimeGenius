@@ -1,2 +1,2 @@
-.print-time-genius { color: @gold; content: "🟊"}
-
+.print-time-genius { color: gold; visibility: hidden}
+.print-time-genius:before {content: "🟊"; visibility: visible; position: absolute;}

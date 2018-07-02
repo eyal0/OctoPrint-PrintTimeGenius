@@ -11,6 +11,41 @@ $(function() {
     self.settingsViewModel = parameters[0];
     self.printerStateViewModel = parameters[1];
 
+    // Overwrite the printTimeLeftOriginString function
+    ko.extenders.addGenius = function(target, option) {
+      let result = ko.pureComputed(function () {
+        let value = self.printerStateViewModel.printTimeLeftOrigin();
+        switch (value) {
+          case "genius": {
+            return option;
+          }
+          default: {
+            return target();
+          }
+        }
+      })
+      return result;
+    };
+    self.printerStateViewModel.printTimeLeftOriginString =
+        self.printerStateViewModel.printTimeLeftOriginString.extend({
+          addGenius: gettext("Based on a line-by-line preprocessing of the gcode (excellent accuracy)")});
+
+    // Overwrite the printTimeLeftOriginClass function
+    self.originalPrintTimeLeftOriginClass = self.printerStateViewModel.printTimeLeftOriginClass;
+    self.printerStateViewModel.printTimeLeftOriginClass = ko.pureComputed(function() {
+      let value = self.printerStateViewModel.printTimeLeftOrigin();
+      switch (value) {
+        case "genius": {
+          return "print-time-genius";
+        }
+        default: {
+          return self.originalPrintTimeLeftOriginClass();
+        }
+      }
+    });
+    self.printerStateViewModel.printTimeLeftOrigin.valueHasMutated();
+
+
     self.onBeforeBinding = function() {
       let settings = self.settingsViewModel.settings;
       let printTimeEstimatorSettings = settings.plugins.PrintTimeEstimator;
@@ -26,35 +61,6 @@ $(function() {
           return self.originalFormatFuzzyPrintTime.apply(null, arguments);
         }
       }
-
-      // Overwrite the printTimeLeftOriginString function
-      self.originalPrintTimeLeftOriginString = self.printerStateViewModel.printTimeLeftOriginString;
-      self.printerStateViewModel.printTimeLeftOriginString = ko.pureComputed(function() {
-        let value = self.printerStateViewModel.printTimeLeftOrigin();
-        switch (value) {
-          case "genius": {
-            return gettext("Based on a line-by-line preprocessing of the gcode (excellent accuracy)");
-          }
-          default: {
-            return self.originalPrintTimeLeftOriginString();
-          }
-        }
-      });
-
-      // Overwrite the printTimeLeftOriginClass function
-      self.originalPrintTimeLeftOriginClass = self.printerStateViewModel.printTimeLeftOriginClass;
-      self.printerStateViewModel.printTimeLeftOriginClass = ko.pureComputed(function() {
-        let value = self.printerStateViewModel.printTimeLeftOrigin();
-        switch (value) {
-          case "genius": {
-            return "print-time-genius";
-          }
-          default: {
-            return self.originalPrintTimeLeftOriginClass();
-          }
-        }
-      });
-      self.printerStateViewModel.printTimeLeftOrigin.valueHasMutated();
 
       self.exactDurations.subscribe(function (newValue) {
         self.printerStateViewModel.estimatedPrintTime.valueHasMutated();
