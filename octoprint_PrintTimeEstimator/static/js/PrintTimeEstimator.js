@@ -12,11 +12,12 @@ $(function() {
     self.printerStateViewModel = parameters[1];
 
     self.onBeforeBinding = function() {
-      settings = self.settingsViewModel.settings;
-      printTimeEstimatorSettings = settings.plugins.PrintTimeEstimator;
+      let settings = self.settingsViewModel.settings;
+      let printTimeEstimatorSettings = settings.plugins.PrintTimeEstimator;
       self.analyzers = printTimeEstimatorSettings.analyzers;
       self.exactDurations = printTimeEstimatorSettings.exactDurations;
       self.enableOctoPrintAnalyzer = printTimeEstimatorSettings.enableOctoPrintAnalyzer;
+      // Overwrite the formatFuzzyPrintTime as needed.
       self.originalFormatFuzzyPrintTime = formatFuzzyPrintTime;
       formatFuzzyPrintTime = function() {
         if (self.exactDurations()) {
@@ -25,6 +26,35 @@ $(function() {
           return self.originalFormatFuzzyPrintTime.apply(null, arguments);
         }
       }
+
+      // Overwrite the printTimeLeftOriginString function
+      self.originalPrintTimeLeftOriginString = self.printerStateViewModel.printTimeLeftOriginString;
+      self.printerStateViewModel.printTimeLeftOriginString = ko.pureComputed(function() {
+        let value = self.printerStateViewModel.printTimeLeftOrigin();
+        switch (value) {
+          case "genius": {
+            return gettext("Based on a line-by-line preprocessing of the gcode (excellent accuracy)");
+          }
+          default: {
+            return self.originalPrintTimeLeftOriginString();
+          }
+        }
+      });
+
+      // Overwrite the printTimeLeftOriginClass function
+      self.originalPrintTimeLeftOriginClass = self.printerStateViewModel.printTimeLeftOriginClass;
+      self.printerStateViewModel.printTimeLeftOriginClass = ko.pureComputed(function() {
+        let value = self.printerStateViewModel.printTimeLeftOrigin();
+        switch (value) {
+          case "genius": {
+            return "print-time-genius";
+          }
+          default: {
+            return self.originalPrintTimeLeftOriginClass();
+          }
+        }
+      });
+      self.printerStateViewModel.printTimeLeftOrigin.valueHasMutated();
 
       self.exactDurations.subscribe(function (newValue) {
         self.printerStateViewModel.estimatedPrintTime.valueHasMutated();

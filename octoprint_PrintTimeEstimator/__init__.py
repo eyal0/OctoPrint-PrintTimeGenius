@@ -71,7 +71,7 @@ class GCodeAnalyserEstimator(PrintTimeEstimator):
       total_print_time = cleanedPrintTime/actual_progress
       total_print_time += printTime - cleanedPrintTime # Add in the heating time
       remaining_print_time = total_print_time - printTime
-      print_time_origin = "estimate"
+      print_time_origin = "genius"
       #print("assuming total print time is: %f" % total_print_time)
       if cleanedPrintTime < 30 and actual_progress < 0.01:
         # We're just starting, maybe heating, so we'll just report use the total print time
