@@ -45,7 +45,6 @@ $(function() {
     });
     self.printerStateViewModel.printTimeLeftOrigin.valueHasMutated();
 
-
     self.onBeforeBinding = function() {
       let settings = self.settingsViewModel.settings;
       let printTimeGeniusSettings = settings.plugins.PrintTimeGenius;
@@ -66,7 +65,9 @@ $(function() {
         self.printerStateViewModel.estimatedPrintTime.valueHasMutated();
         self.printerStateViewModel.lastPrintTime.valueHasMutated();
         self.printerStateViewModel.printTimeLeft.valueHasMutated();
-      })
+      });
+      // Force an update because this is called after the format function has already run.
+      self.exactDurations.valueHasMutated();
 
     }
 
