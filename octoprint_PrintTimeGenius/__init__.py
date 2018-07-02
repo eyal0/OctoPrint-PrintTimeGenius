@@ -12,7 +12,7 @@ from __future__ import division
 
 import octoprint.plugin
 import octoprint.filemanager.storage
-from octoprint.printer.estimation import PrintTimeGenius
+from octoprint.printer.estimation import PrintTimeEstimator
 from octoprint.filemanager.analysis import GcodeAnalysisQueue
 import logging
 import bisect
