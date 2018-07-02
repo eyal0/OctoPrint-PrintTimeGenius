@@ -1,8 +1,8 @@
 ---
 layout: plugin
 
-id: PrintTimeEstimator
-title: OctoPrint-PrintTimeEstimator
+id: PrintTimeGenius
+title: OctoPrint-PrintTimeGenius
 description: Use a gcode pre-analysis to provide better print time estimation
 author: Eyal
 license: AGPLv3
@@ -10,9 +10,9 @@ license: AGPLv3
 # TODO
 date: today's date in format YYYY-MM-DD, e.g. 2015-04-21
 
-homepage: https://github.com/eyal0/OctoPrint-PrintTimeEstimator
-source: https://github.com/eyal0/OctoPrint-PrintTimeEstimator
-archive: https://github.com/eyal0/OctoPrint-PrintTimeEstimator/archive/master.zip
+homepage: https://github.com/eyal0/OctoPrint-PrintTimeGenius
+source: https://github.com/eyal0/OctoPrint-PrintTimeGenius
+archive: https://github.com/eyal0/OctoPrint-PrintTimeGenius/archive/master.zip
 
 # TODO
 # Set this to true if your plugin uses the dependency_links setup parameter to include
@@ -86,4 +86,4 @@ compatibility:
 ---
 
 **TODO**: Longer description of your plugin, configuration examples etc. This part will be visible on the page at
-http://plugins.octoprint.org/plugin/PrintTimeEstimator/
+http://plugins.octoprint.org/plugin/PrintTimeGenius/

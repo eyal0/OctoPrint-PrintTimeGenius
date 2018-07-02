@@ -18,11 +18,11 @@ babel_pack --locale=<locale> [ --author=<author> ]
     with each new release of your plugin and have to depend on contributors for.
 
 If you want to bundle translations with your plugin, create a new folder
-`octoprint_PrintTimeEstimator/translations`. When that folder exists,
+`octoprint_PrintTimeGenius/translations`. When that folder exists,
 an additional command becomes available:
 
 babel_bundle --locale=<locale>
-    Moves the translation for locale `<locale>` to octoprint_PrintTimeEstimator/translations,
+    Moves the translation for locale `<locale>` to octoprint_PrintTimeGenius/translations,
     effectively bundling it with your plugin. This is interesting for languages
     you can guarantee to keep up to date yourself with each new release of your
     plugin.

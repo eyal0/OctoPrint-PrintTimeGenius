@@ -12,7 +12,7 @@ from __future__ import division
 
 import octoprint.plugin
 import octoprint.filemanager.storage
-from octoprint.printer.estimation import PrintTimeEstimator
+from octoprint.printer.estimation import PrintTimeGenius
 from octoprint.filemanager.analysis import GcodeAnalysisQueue
 import logging
 import bisect
@@ -20,11 +20,11 @@ import subprocess
 import json
 import shlex
 
-class GCodeAnalyserEstimator(PrintTimeEstimator):
+class GCodeAnalyserGenius(PrintTimeEstimator):
   """Uses previous generated analysis to estimate print time remaining."""
 
   def __init__(self, job_type, printer, file_manager, logger):
-    super(GCodeAnalyserEstimator, self).__init__(job_type)
+    super(GCodeAnalyserGenius, self).__init__(job_type)
     #print(printer.get_current_job())
     self._path = printer.get_current_job()["file"]["path"]
     self._origin = printer.get_current_job()["file"]["origin"]
@@ -81,7 +81,7 @@ class GCodeAnalyserEstimator(PrintTimeEstimator):
         print_time_origin = "linear"
       result = remaining_print_time, print_time_origin
     except Exception as e:
-      result = super(GCodeAnalyserEstimator, self).estimate(
+      result = super(GCodeAnalyserGenius, self).estimate(
           progress, printTime, cleanedPrintTime,
           statisticalTotalPrintTime, statisticalTotalPrintTimeType)
     self._logger.debug("{}, {}, {}".format(printTime, cleanedPrintTime, result[0]))
@@ -120,7 +120,7 @@ class GCodeAnalyserAnalysisQueue(GcodeAnalysisQueue):
         logger.warning("Failed to run '{}'".format(command), exc_info=e)
     return results
 
-class PrintTimeEstimatorPlugin(octoprint.plugin.SettingsPlugin,
+class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
                                octoprint.plugin.AssetPlugin,
                                octoprint.plugin.TemplatePlugin,
                                octoprint.plugin.StartupPlugin):
@@ -155,9 +155,9 @@ class PrintTimeEstimatorPlugin(octoprint.plugin.SettingsPlugin,
     # Define your plugin's asset files to automatically include in the
     # core UI here.
     return dict(
-	js=["js/PrintTimeEstimator.js"],
-	css=["css/PrintTimeEstimator.css"],
-	less=["less/PrintTimeEstimator.less"]
+	js=["js/PrintTimeGenius.js"],
+	css=["css/PrintTimeGenius.css"],
+	less=["less/PrintTimeGenius.less"]
     )
 
   ##~~ Gcode Analysis Hook
@@ -165,7 +165,7 @@ class PrintTimeEstimatorPlugin(octoprint.plugin.SettingsPlugin,
     return dict(gcode=lambda finished_callback: GCodeAnalyserAnalysisQueue(
         finished_callback, self))
   def custom_estimation_factory(self, *args, **kwargs):
-    return lambda job_type: GCodeAnalyserEstimator(
+    return lambda job_type: GCodeAnalyserGenius(
         job_type, self._printer, self._file_manager, self._logger)
 
   ##~~ Softwareupdate hook
@@ -175,18 +175,18 @@ class PrintTimeEstimatorPlugin(octoprint.plugin.SettingsPlugin,
     # Plugin here. See https://github.com/foosel/OctoPrint/wiki/Plugin:-Software-Update
     # for details.
     return dict(
-	PrintTimeEstimator=dict(
-	    displayName="Printtimeestimator Plugin",
+	PrintTimeGenius=dict(
+	    displayName="Print Time Genius Plugin",
 	    displayVersion=self._plugin_version,
 
 	    # version check: github repository
 	    type="github_release",
 	    user="eyal0",
-	    repo="OctoPrint-PrintTimeEstimator",
+	    repo="OctoPrint-PrintTimeGenius",
 	    current=self._plugin_version,
 
 	    # update method: pip
-	    pip="https://github.com/eyal0/OctoPrint-PrintTimeEstimator/archive/{target_version}.zip"
+	    pip="https://github.com/eyal0/OctoPrint-PrintTimeGenius/archive/{target_version}.zip"
 	)
     )
 
@@ -194,11 +194,11 @@ class PrintTimeEstimatorPlugin(octoprint.plugin.SettingsPlugin,
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
 # can be overwritten via __plugin_xyz__ control properties. See the documentation for that.
-__plugin_name__ = "PrintTimeEstimator Plugin"
+__plugin_name__ = "PrintTimeGenius Plugin"
 
 def __plugin_load__():
   global __plugin_implementation__
-  __plugin_implementation__ = PrintTimeEstimatorPlugin()
+  __plugin_implementation__ = PrintTimeGeniusPlugin()
 
   global __plugin_hooks__
   __plugin_hooks__ = {

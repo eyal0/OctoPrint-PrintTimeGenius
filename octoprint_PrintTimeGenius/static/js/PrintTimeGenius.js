@@ -1,11 +1,11 @@
 /*
- * View model for OctoPrint-PrintTimeEstimator
+ * View model for OctoPrint-PrintTimeGenius
  *
  * Author: Eyal
  * License: AGPLv3
  */
 $(function() {
-  function PrintTimeEstimatorViewModel(parameters) {
+  function PrintTimeGeniusViewModel(parameters) {
     var self = this;
 
     self.settingsViewModel = parameters[0];
@@ -48,10 +48,10 @@ $(function() {
 
     self.onBeforeBinding = function() {
       let settings = self.settingsViewModel.settings;
-      let printTimeEstimatorSettings = settings.plugins.PrintTimeEstimator;
-      self.analyzers = printTimeEstimatorSettings.analyzers;
-      self.exactDurations = printTimeEstimatorSettings.exactDurations;
-      self.enableOctoPrintAnalyzer = printTimeEstimatorSettings.enableOctoPrintAnalyzer;
+      let printTimeGeniusSettings = settings.plugins.PrintTimeGenius;
+      self.analyzers = printTimeGeniusSettings.analyzers;
+      self.exactDurations = printTimeGeniusSettings.exactDurations;
+      self.enableOctoPrintAnalyzer = printTimeGeniusSettings.enableOctoPrintAnalyzer;
       // Overwrite the formatFuzzyPrintTime as needed.
       self.originalFormatFuzzyPrintTime = formatFuzzyPrintTime;
       formatFuzzyPrintTime = function() {
@@ -84,10 +84,10 @@ $(function() {
    * and a full list of the available options.
    */
   OCTOPRINT_VIEWMODELS.push({
-    construct: PrintTimeEstimatorViewModel,
+    construct: PrintTimeGeniusViewModel,
     // ViewModels your plugin depends on, e.g. loginStateViewModel, settingsViewModel, ...
     dependencies: ["settingsViewModel", "printerStateViewModel"],
-    // Elements to bind to, e.g. #settings_plugin_PrintTimeEstimator, #tab_plugin_PrintTimeEstimator, ...
-    elements: [ "#settings_plugin_PrintTimeEstimator" ]
+    // Elements to bind to, e.g. #settings_plugin_PrintTimeGenius, #tab_plugin_PrintTimeGenius, ...
+    elements: [ "#settings_plugin_PrintTimeGenius" ]
   });
 });
