@@ -30,61 +30,77 @@ class GCodeAnalyserGenius(PrintTimeEstimator):
     self._origin = printer.get_current_job()["file"]["origin"]
     self._file_manager = file_manager
     self._logger = logger
+    self._first_progress = None # Actual [progress, printTime] that is measured
+
+  def _interpolate(self, l, point):
+    """Use the point value to interpolate a new value from the list.
+    l must be a sorted list of lists.  point is a value to interpolate.
+    Return None if the point is out of range.
+    If the result is not None, return interpolated array."""
+    # ge is the index of the first element >= point
+    if point < l[0][0] or point > l[-1][0]:
+      return None
+    if point == l[0][0]:
+      return l[0]
+    if point == l[-1][0]:
+      return l[-1]
+    right_index = bisect.bisect_right(l, [point])
+    left_index = right_index - 1
+    # ratio 0 means use the left_index one, 1 means the right_index one
+    ratio = (point - l[left_index][0])/(l[right_index][0] - l[left_index][0])
+    return [x[0]*(1-ratio) + x[1]*ratio
+            for x in zip(l[left_index], l[right_index])]
+
+  def _genius_estimate(self, progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType):
+    """Return an estimate for the total print time remaining."""
+    # The progress is a sorted list of pairs [filepos, progress].
+    # It maps from filepos to actual printing progress.
+    # filepos is between 0 and 1, same as progress.
+    # actual progress is in seconds
+    metadata = self._file_manager.get_metadata(self._origin, self._path)
+    if not metadata:
+      return None
+    if not "analysis" in metadata or not "progress" in metadata["analysis"]:
+      return None
+    filepos_to_progress = metadata["analysis"]["progress"]
+    if progress < filepos_to_progress[0][0]:
+      return None # We're not yet in range so we have no genius estimate yet.
+    if not self._first_progress:
+      self._first_progress = [progress, printTime]
+      self._first_interpolated = self._interpolate(filepos_to_progress, progress)
+    interpolated = self._interpolate(filepos_to_progress, progress)
+    if not interpolated:
+      return None # We're out of range.
+    if interpolated[1] == self._first_interpolated[1]:
+      return None # To prevent dividing by zero.
+    # This is how much time we predicted would.
+    predicted_printed = (interpolated[1] - self._first_interpolated[1])
+    # This is how much time we predict will pass from _first in total
+    predicted_total = filepos_to_progress[-1][1]
+    # This is how much time we actually spent.
+    actual_printed = printTime - self._first_progress[1]
+    actual_total = actual_printed * predicted_total / predicted_printed
+    # Add in the time since the start.
+    actual_total += self._first_progress[1]
+    remaining_print_time = actual_total - printTime
+    return remaining_print_time, "genius"
 
   def estimate(self, progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType):
-    result = None
+    default_result = super(GCodeAnalyserGenius, self).estimate(
+        progress, printTime, cleanedPrintTime,
+        statisticalTotalPrintTime, statisticalTotalPrintTimeType)
+    result = default_result
+    genius_result = result # If genius fails, just use the original result for printing below.
     try:
-      # The progress is a sorted list of pairs [filepos, progress].
-      # It maps from filepos to actual printing progress.
-      # All values are in terms of the final values of filepos and progress.
-      #print(self._file_manager)
-      #print(self._file_manager.get_metadata(self._origin, self._path))
-      filepos_to_progress = self._file_manager.get_metadata(self._origin, self._path)["analysis"]["progress"]
-      last_pair = filepos_to_progress[-1]
-      max_filepos = last_pair[0] # End of file, end of print
-      current_filepos = progress*max_filepos
-      ge = bisect.bisect_left(filepos_to_progress, [current_filepos, 0])
-      ge_pair = last_pair # End of file, end of print
-      if ge != len(filepos_to_progress):
-        ge_pair = filepos_to_progress[ge]
-      lt = ge - 1
-      lt_pair = filepos_to_progress[0] # Start of file, start of print
-      if lt:
-        lt_pair = filepos_to_progress[lt]
-      filepos_range = ge_pair[0] - lt_pair[0]
-      # range_ratio 0 means that we're at lt_pair, 1 means that we're at ge_pair
-      if filepos_range == 0:
-        actual_progress = lt_pair[1]
-      else:
-        range_ratio = (progress*max_filepos-lt_pair[0]) / filepos_range
-        actual_progress = (1-range_ratio)*lt_pair[1] + range_ratio*ge_pair[1]
-      actual_progress /= last_pair[1]
-      # actual_progress is the percentage of total time, in the range [0,1]
-      # Convert it to the actual time remaining
-      #print("cleaned is %f" % cleanedPrintTime)
-      #print("printTime is %f" % printTime)
-      #print("statisticalTotalPrintTime is %f" % statisticalTotalPrintTime)
-      #print("actual_progress is %f" % actual_progress)
-      print_time_origin = "linear"
-      use_estimate = 1
-
-      total_print_time = cleanedPrintTime/actual_progress
-      total_print_time += printTime - cleanedPrintTime # Add in the heating time
-      remaining_print_time = total_print_time - printTime
-      print_time_origin = "genius"
-      #print("assuming total print time is: %f" % total_print_time)
-      if cleanedPrintTime < 30 and actual_progress < 0.01:
-        # We're just starting, maybe heating, so we'll just report use the total print time
-        use_estimate = max(cleanedPrintTime/30, actual_progress/0.01)
-        remaining_print_time = (use_estimate*remaining_print_time +
-                                (1-use_estimate)*(statisticalTotalPrintTime - printTime))
-        print_time_origin = "linear"
-      result = remaining_print_time, print_time_origin
-    except Exception as e:
-      result = super(GCodeAnalyserGenius, self).estimate(
+      new_result = self._genius_estimate(
           progress, printTime, cleanedPrintTime,
           statisticalTotalPrintTime, statisticalTotalPrintTimeType)
-    self._logger.debug("{}, {}, {}".format(printTime, cleanedPrintTime, result[0]))
+      if new_result: # If we succeed.
+        genius_result = new_result
+        result = new_result
+    except Exception as e:
+      self._logger.warning("Failed to estimate, ignoring.", exc_info=e)
+    self._logger.debug(", ".join(map(str, [printTime, default_result[0], default_result[1], genius_result[0], genius_result[1], progress])))
     return result
 
 class GCodeAnalyserAnalysisQueue(GcodeAnalysisQueue):
