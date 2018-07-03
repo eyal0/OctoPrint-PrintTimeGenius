@@ -71,18 +71,20 @@ class GCodeAnalyserGenius(PrintTimeEstimator):
     interpolated = self._interpolate(filepos_to_progress, progress)
     if not interpolated:
       return None # We're out of range.
-    if interpolated[1] == self._first_interpolated[1]:
-      return None # To prevent dividing by zero.
     # This is how much time we predicted would.
-    predicted_printed = (interpolated[1] - self._first_interpolated[1])
+    predicted_printed = interpolated[1] - self._first_interpolated[1]
+    if predicted_printed == 0:
+      return None # To prevent dividing by zero.
     # This is how much time we predict will pass from _first in total
-    predicted_total = filepos_to_progress[-1][1]
+    predicted_total = filepos_to_progress[-1][1] - self._first_interpolated[1]
     # This is how much time we actually spent.
     actual_printed = printTime - self._first_progress[1]
     actual_total = actual_printed * predicted_total / predicted_printed
     # Add in the time since the start.
     actual_total += self._first_progress[1]
     remaining_print_time = actual_total - printTime
+    self._logger.debug("debug" +
+                       ", ".join(map(str, [self._first_progress, self._first_interpolated, interpolated])))
     return remaining_print_time, "genius"
 
   def estimate(self, progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType):
