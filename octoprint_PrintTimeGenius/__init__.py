@@ -34,7 +34,7 @@ class GCodeAnalyserGenius(PrintTimeEstimator):
   def estimate(self, progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType):
     result = None
     try:
-      # The progress is a sorted list of pairs (filepos, progress).
+      # The progress is a sorted list of pairs [filepos, progress].
       # It maps from filepos to actual printing progress.
       # All values are in terms of the final values of filepos and progress.
       #print(self._file_manager)
