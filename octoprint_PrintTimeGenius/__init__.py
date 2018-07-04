@@ -25,12 +25,12 @@ class GCodeAnalyserGenius(PrintTimeEstimator):
 
   def __init__(self, job_type, printer, file_manager, logger):
     super(GCodeAnalyserGenius, self).__init__(job_type)
-    #print(printer.get_current_job())
     self._path = printer.get_current_job()["file"]["path"]
     self._origin = printer.get_current_job()["file"]["origin"]
     self._file_manager = file_manager
     self._logger = logger
-    self._first_progress = None # Actual [progress, printTime] that is measured
+    self._current_progress_index = -1 # Points to the entry that we used for remaining time
+    self._current_total_printTime = None # When we started using the current_progress
 
   def _interpolate(self, l, point):
     """Use the point value to interpolate a new value from the list.
@@ -53,8 +53,8 @@ class GCodeAnalyserGenius(PrintTimeEstimator):
 
   def _genius_estimate(self, progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType):
     """Return an estimate for the total print time remaining."""
-    # The progress is a sorted list of pairs [filepos, progress].
-    # It maps from filepos to actual printing progress.
+    # The progress is a sorted list of pairs [filepos, remaining_time].
+    # It maps from filepos to estimated remaining time.
     # filepos is between 0 and 1, same as progress.
     # actual progress is in seconds
     metadata = self._file_manager.get_metadata(self._origin, self._path)
@@ -63,28 +63,19 @@ class GCodeAnalyserGenius(PrintTimeEstimator):
     if not "analysis" in metadata or not "progress" in metadata["analysis"]:
       return None
     filepos_to_progress = metadata["analysis"]["progress"]
-    if progress < filepos_to_progress[0][0]:
-      return None # We're not yet in range so we have no genius estimate yet.
-    if not self._first_progress:
-      self._first_progress = [progress, printTime]
-      self._first_interpolated = self._interpolate(filepos_to_progress, progress)
-    interpolated = self._interpolate(filepos_to_progress, progress)
-    if not interpolated:
-      return None # We're out of range.
-    # This is how much time we predicted would.
-    predicted_printed = interpolated[1] - self._first_interpolated[1]
-    if predicted_printed == 0:
-      return None # To prevent dividing by zero.
-    # This is how much time we predict will pass from _first in total
-    predicted_total = filepos_to_progress[-1][1] - self._first_interpolated[1]
-    # This is how much time we actually spent.
-    actual_printed = printTime - self._first_progress[1]
-    actual_total = actual_printed * predicted_total / predicted_printed
-    # Add in the time since the start.
-    actual_total += self._first_progress[1]
-    remaining_print_time = actual_total - printTime
-    self._logger.debug("debug" +
-                       ", ".join(map(str, [self._first_progress, self._first_interpolated, interpolated])))
+    # Can we increment the current_progress_index?
+    new_progress_index = self._current_progress_index
+    while (new_progress_index + 1 < len(filepos_to_progress) and
+           progress >= filepos_to_progress[new_progress_index+1][0]):
+      new_progress_index += 1 # Increment
+    if new_progress_index < 0:
+      return None # We're not even in range yet.
+    if new_progress_index != self._current_progress_index:
+      # We advanced to a new index, let's use the new estimate.
+      self._current_progress_index = new_progress_index
+      # This is our best guess for the total print time.
+      self._current_total_printTime = self._interpolate(filepos_to_progress, progress)[1] + printTime
+    remaining_print_time = self._current_total_printTime - printTime
     return remaining_print_time, "genius"
 
   def estimate(self, progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType):
@@ -92,17 +83,15 @@ class GCodeAnalyserGenius(PrintTimeEstimator):
         progress, printTime, cleanedPrintTime,
         statisticalTotalPrintTime, statisticalTotalPrintTimeType)
     result = default_result
-    genius_result = result # If genius fails, just use the original result for printing below.
     try:
-      new_result = self._genius_estimate(
+      genius_result = self._genius_estimate(
           progress, printTime, cleanedPrintTime,
           statisticalTotalPrintTime, statisticalTotalPrintTimeType)
-      if new_result: # If we succeed.
-        genius_result = new_result
-        result = new_result
+      if genius_result and statisticalTotalPrintTimeType != "average": # If we succeed.
+        result = genius_result
     except Exception as e:
       self._logger.warning("Failed to estimate, ignoring.", exc_info=e)
-    self._logger.debug(", ".join(map(str, [printTime, default_result[0], default_result[1], genius_result[0], genius_result[1], progress])))
+    self._logger.debug(", ".join(map(str, [printTime, default_result[0], default_result[1], result[0], result[1], progress])))
     return result
 
 class GCodeAnalyserAnalysisQueue(GcodeAnalysisQueue):
@@ -162,8 +151,6 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     logging_handler.setLevel(logging.DEBUG)
 
     self._logger.addHandler(logging_handler)
-    #self._logger.setLevel(logging.DEBUG if self._settings.get_boolean(["debug_logging"]) else logging.CRITICAL)
-    self._logger.setLevel(logging.DEBUG)
     self._logger.propagate = False
 
 

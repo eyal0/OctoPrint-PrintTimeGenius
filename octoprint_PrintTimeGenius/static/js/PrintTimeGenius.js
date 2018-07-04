@@ -28,7 +28,7 @@ $(function() {
     };
     self.printerStateViewModel.printTimeLeftOriginString =
         self.printerStateViewModel.printTimeLeftOriginString.extend({
-          addGenius: gettext("Based on a line-by-line preprocessing of the gcode (excellent accuracy)")});
+          addGenius: gettext("Based on a line-by-line preprocessing of the gcode (good accuracy)")});
 
     // Overwrite the printTimeLeftOriginClass function
     self.originalPrintTimeLeftOriginClass = self.printerStateViewModel.printTimeLeftOriginClass;
