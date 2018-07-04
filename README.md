@@ -1,6 +1,6 @@
 # OctoPrint-PrintTimeGenius
 
-**TODO:** Describe what your plugin does.
+Provide better estimations on print time in OctoPrint.
 
 ## Setup
 
