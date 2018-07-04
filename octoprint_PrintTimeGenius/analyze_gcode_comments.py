@@ -9,6 +9,32 @@ from collections import defaultdict
 dd = lambda: defaultdict(dd)
 
 ALL_GCODE_LINE_ANALYZERS = []
+TIME_UNITS_TO_SECONDS = defaultdict(
+    lambda: 0,
+    {
+        "s": 1,
+        "second": 1,
+        "seconds": 1,
+        "m": 60,
+        "min": 60,
+        "minute": 60,
+        "minutes": 60,
+        "h": 60*60,
+        "hour": 60*60,
+        "hours": 60*60,
+        "d": 24*60*60,
+        "day": 24*60*60,
+        "days": 24*60*60,
+    })
+
+def process_time_text(time_text):
+  """Given a string like "5 minutes, 4 seconds + 82 hours" return the total in seconds"""
+  total = 0
+  for time_part in re.finditer('([0-9.]+)\s*([a-zA-Z]+)', time_text):
+    quantity = float(time_part.group(1))
+    units = TIME_UNITS_TO_SECONDS[time_part.group(2)]
+    total += quantity * units
+  return total
 
 def process_slic3r_filament(gcode_line):
   """Match a slic3r PE filament line"""
@@ -25,17 +51,7 @@ def process_slic3r_print_time(gcode_line):
   ret = dd()
   m = re.match('\s*;\s*estimated printing time\s*=\s(.*)\s*', gcode_line)
   if m:
-    time_text = m.group(1)
-    # Now extract the days, hours, minutes, and seconds
-    ret['estimatedPrintTime'] = 0
-    for time_part in time_text.split(' '):
-      for unit in [("h", 60*60),
-                   ("m", 60),
-                   ("s", 1),
-                   ("d", 24*60*60)]:
-        m = re.match('\s*([0-9.]+)' + re.escape(unit[0]), time_part)
-        if m:
-          ret['estimatedPrintTime'] += float(m.group(1)) * unit[1]
+    ret['estimatedPrintTime'] = process_time_text(m.group(1))
   return ret
 ALL_GCODE_LINE_ANALYZERS.append(process_slic3r_print_time)
 
@@ -62,6 +78,15 @@ def process_cura330_filament(gcode_line):
     ret['filament']['tool0']['length'] = float(filament_meters_text) * 1000
   return ret
 ALL_GCODE_LINE_ANALYZERS.append(process_cura330_filament)
+
+def process_cura1504_print_time(gcode_line):
+  """Match Cura1504 time estimate"""
+  ret = dd()
+  m = re.match('\s*;\s*Print time\s*:\s*([0-9.]+)\s*m\s+(.*)\s*', gcode_line)
+  if m:
+    ret['estimatedPrintTime'] = process_time_text(m.group(1))
+  return ret
+ALL_GCODE_LINE_ANALYZERS.append(process_slic3r_print_time)
 
 file_position = 0
 forward_progress = []
@@ -91,7 +116,6 @@ def get_analysis_from_gcode(machinecode_path):
         [[filepos/file_position, analysis['estimatedPrintTime'] - remaining]
           for [filepos, remaining] in forward_progress] +
         [[1, 0]])
-
   return json.loads(json.dumps(analysis))
 
 if __name__ == "__main__":
