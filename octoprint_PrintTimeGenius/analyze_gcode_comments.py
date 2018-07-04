@@ -6,6 +6,35 @@ import json
 import sys
 from collections import defaultdict
 
+dd = lambda: defaultdict(dd)
+
+def process_slic3r_filament(gcode_line):
+  """Match a slic3r PE filament line"""
+  ret = dd()
+  m = re.match('\s*;\s*filament used\s*=\s*([0-9.]+)\s*mm\s*\(([0-9.]+)cm3\)\s*', gcode_line)
+  if m:
+    ret['filament']['tool0']['length'] = float(m.group(1))
+    ret['filament']['tool0']['volume'] = float(m.group(2))
+  return ret
+
+def process_slic3r_print_time(gcode_line):
+  """Match a Slic3r PE print time estimate"""
+  ret = dd()
+  m = re.match('\s*;\s*estimated printing time\s*=\s(.*)\s*', gcode_line)
+  if m:
+    time_text = m.group(1)
+    # Now extract the days, hours, minutes, and seconds
+    ret['estimatedPrintTime'] = 0
+    for time_part in time_text.split(' '):
+      for unit in [("h", 60*60),
+                   ("m", 60),
+                   ("s", 1),
+                   ("d", 24*60*60)]:
+        m = re.match('\s*([0-9.]+)' + re.escape(unit[0]), time_part)
+        if m:
+          ret['estimatedPrintTime'] += float(m.group(1)) * unit[1]
+  return ret
+
 def get_analysis_from_gcode(machinecode_path):
   """Extracts the analysis data structure from the gocde.
 
@@ -14,7 +43,6 @@ def get_analysis_from_gcode(machinecode_path):
   (There is a bug in the documentation, estimatedPrintTime should be in seconds.)
   Return '{}' if there is no analysis information in the file.
   """
-  dd = lambda: defaultdict(dd)
   analysis = dd()
   file_position = 0
   forward_progress = []
@@ -24,26 +52,8 @@ def get_analysis_from_gcode(machinecode_path):
       if not gcode_line[0].startswith(";"):
         continue # This saves a lot of time
 
-      # Match a slic3r PE filament line
-      m = re.match('\s*;\s*filament used\s*=\s*([0-9.]+)\s*mm\s*\(([0-9.]+)cm3\)\s*', gcode_line)
-      if m:
-        analysis['filament']['tool0']['length'] = float(m.group(1))
-        analysis['filament']['tool0']['volume'] = float(m.group(2))
-
-      # Match a Slic3r PE print time estimate
-      m = re.match('\s*;\s*estimated printing time\s*=\s(.*)\s*', gcode_line)
-      if m:
-        time_text = m.group(1)
-        # Now extract the days, hours, minutes, and seconds
-        analysis['estimatedPrintTime'] = 0
-        for time_part in time_text.split(' '):
-          for unit in [("h", 60*60),
-                       ("m", 60),
-                       ("s", 1),
-                       ("d", 24*60*60)]:
-            m = re.match('\s*([0-9.]+)' + re.escape(unit[0]), time_part)
-            if m:
-              analysis['estimatedPrintTime'] += float(m.group(1)) * unit[1]
+      analysis.update(process_slic3r_filament(gcode_line))
+      analysis.update(process_slic3r_print_time(gcode_line))
 
       # Match Cura330 time estimate
       m = re.match('\s*;\s*TIME_ELAPSED\s*:\s*([0-9.]+)\s*', gcode_line)
