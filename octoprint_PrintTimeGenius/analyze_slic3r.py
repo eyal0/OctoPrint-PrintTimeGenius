@@ -38,10 +38,9 @@ def get_analysis_from_gcode(machinecode_path):
             if m:
               printing_seconds += float(m.group(1)) * unit[1]
   # Now build up the analysis struct
-  analysis = None
+  dd = lambda: defaultdict(dd)
+  analysis = dd()
   if printing_seconds is not None or filament_length is not None or filament_volume is not None:
-    dd = lambda: defaultdict(dd)
-    analysis = dd()
     if printing_seconds is not None:
       analysis['estimatedPrintTime'] = printing_seconds
     if filament_length is not None:
