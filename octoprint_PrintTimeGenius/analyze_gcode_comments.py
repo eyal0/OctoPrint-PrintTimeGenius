@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import division
 import re
 import json
 import sys
@@ -15,8 +16,11 @@ def get_analysis_from_gcode(machinecode_path):
   """
   dd = lambda: defaultdict(dd)
   analysis = dd()
+  file_position = 0
+  forward_progress = []
   with open(machinecode_path) as gcode_lines:
     for gcode_line in gcode_lines:
+      file_position += len(gcode_line)
       if not gcode_line[0].startswith(";"):
         continue # This saves a lot of time
 
@@ -45,13 +49,25 @@ def get_analysis_from_gcode(machinecode_path):
       m = re.match('\s*;\s*TIME_ELAPSED\s*:\s*([0-9.]+)\s*', gcode_line)
       if m:
         time_text = m.group(1)
-        analysis['estimatedPrintTime'] = float(time_text)
+        time_elapsed = float(time_text)
+        analysis['estimatedPrintTime'] = time_elapsed
+        # We'll later convert forward_progress to reverse progress
+        forward_progress.append([file_position, time_elapsed])
 
       # Match Cura330 filament used
       m = re.match('\s*;\s*Filament used\s*:\s*([0-9.]+)\s*m\s*', gcode_line)
       if m:
         filament_meters_text = m.group(1)
         analysis['filament']['tool0']['length'] = float(filament_meters_text) * 1000
+
+  # Convert forward_progress to reverse progress if we found it.
+  if forward_progress:
+    analysis['progress'] = (
+        [[0, analysis['estimatedPrintTime']]] +
+        [[filepos/file_position, analysis['estimatedPrintTime'] - remaining]
+          for [filepos, remaining] in forward_progress] +
+        [[1, 0]])
+
   return json.loads(json.dumps(analysis))
 
 if __name__ == "__main__":
