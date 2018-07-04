@@ -8,6 +8,8 @@ from collections import defaultdict
 
 dd = lambda: defaultdict(dd)
 
+ALL_GCODE_LINE_ANALYZERS = []
+
 def process_slic3r_filament(gcode_line):
   """Match a slic3r PE filament line"""
   ret = dd()
@@ -16,6 +18,7 @@ def process_slic3r_filament(gcode_line):
     ret['filament']['tool0']['length'] = float(m.group(1))
     ret['filament']['tool0']['volume'] = float(m.group(2))
   return ret
+ALL_GCODE_LINE_ANALYZERS.append(process_slic3r_filament)
 
 def process_slic3r_print_time(gcode_line):
   """Match a Slic3r PE print time estimate"""
@@ -34,7 +37,34 @@ def process_slic3r_print_time(gcode_line):
         if m:
           ret['estimatedPrintTime'] += float(m.group(1)) * unit[1]
   return ret
+ALL_GCODE_LINE_ANALYZERS.append(process_slic3r_print_time)
 
+def process_cura330_print_time(gcode_line):
+  """Match Cura330 time estimate"""
+  ret = dd()
+  m = re.match('\s*;\s*TIME_ELAPSED\s*:\s*([0-9.]+)\s*', gcode_line)
+  if m:
+    time_text = m.group(1)
+    time_elapsed = float(time_text)
+    ret['estimatedPrintTime'] = time_elapsed
+    # We'll later convert forward_progress to reverse progress
+    global forward_progress
+    forward_progress.append([file_position, time_elapsed])
+  return ret
+ALL_GCODE_LINE_ANALYZERS.append(process_cura330_print_time)
+
+def process_cura330_filament(gcode_line):
+  """Match Cura330 filament used"""
+  ret = dd()
+  m = re.match('\s*;\s*Filament used\s*:\s*([0-9.]+)\s*m\s*', gcode_line)
+  if m:
+    filament_meters_text = m.group(1)
+    ret['filament']['tool0']['length'] = float(filament_meters_text) * 1000
+  return ret
+ALL_GCODE_LINE_ANALYZERS.append(process_cura330_filament)
+
+file_position = 0
+forward_progress = []
 def get_analysis_from_gcode(machinecode_path):
   """Extracts the analysis data structure from the gocde.
 
@@ -44,31 +74,15 @@ def get_analysis_from_gcode(machinecode_path):
   Return '{}' if there is no analysis information in the file.
   """
   analysis = dd()
-  file_position = 0
-  forward_progress = []
   with open(machinecode_path) as gcode_lines:
     for gcode_line in gcode_lines:
+      global file_position
       file_position += len(gcode_line)
       if not gcode_line[0].startswith(";"):
         continue # This saves a lot of time
 
-      analysis.update(process_slic3r_filament(gcode_line))
-      analysis.update(process_slic3r_print_time(gcode_line))
-
-      # Match Cura330 time estimate
-      m = re.match('\s*;\s*TIME_ELAPSED\s*:\s*([0-9.]+)\s*', gcode_line)
-      if m:
-        time_text = m.group(1)
-        time_elapsed = float(time_text)
-        analysis['estimatedPrintTime'] = time_elapsed
-        # We'll later convert forward_progress to reverse progress
-        forward_progress.append([file_position, time_elapsed])
-
-      # Match Cura330 filament used
-      m = re.match('\s*;\s*Filament used\s*:\s*([0-9.]+)\s*m\s*', gcode_line)
-      if m:
-        filament_meters_text = m.group(1)
-        analysis['filament']['tool0']['length'] = float(filament_meters_text) * 1000
+      for gcode_analyzer in ALL_GCODE_LINE_ANALYZERS:
+        analysis.update(gcode_analyzer(gcode_line))
 
   # Convert forward_progress to reverse progress if we found it.
   if forward_progress:
