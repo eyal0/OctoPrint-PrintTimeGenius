@@ -19,37 +19,39 @@ import bisect
 import subprocess
 import json
 import shlex
+import time
+
+def _interpolate(l, point):
+  """Use the point value to interpolate a new value from the list.
+  l must be a sorted list of lists.  point is a value to interpolate.
+  Return None if the point is out of range.
+  If the result is not None, return interpolated array."""
+  # ge is the index of the first element >= point
+  if point < l[0][0] or point > l[-1][0]:
+    return None
+  if point == l[0][0]:
+    return l[0]
+  if point == l[-1][0]:
+    return l[-1]
+  right_index = bisect.bisect_right(l, [point])
+  left_index = right_index - 1
+  # ratio 0 means use the left_index one, 1 means the right_index one
+  ratio = (point - l[left_index][0])/(l[right_index][0] - l[left_index][0])
+  return [x[0]*(1-ratio) + x[1]*ratio
+          for x in zip(l[left_index], l[right_index])]
 
 class GeniusEstimator(PrintTimeEstimator):
   """Uses previous generated analysis to estimate print time remaining."""
 
-  def __init__(self, job_type, printer, file_manager, logger):
+  def __init__(self, job_type, printer, file_manager, logger, current_history):
     super(GeniusEstimator, self).__init__(job_type)
     self._path = printer.get_current_job()["file"]["path"]
     self._origin = printer.get_current_job()["file"]["origin"]
     self._file_manager = file_manager
     self._logger = logger
+    self._current_history = current_history
     self._current_progress_index = -1 # Points to the entry that we used for remaining time
     self._current_total_printTime = None # When we started using the current_progress
-
-  def _interpolate(self, l, point):
-    """Use the point value to interpolate a new value from the list.
-    l must be a sorted list of lists.  point is a value to interpolate.
-    Return None if the point is out of range.
-    If the result is not None, return interpolated array."""
-    # ge is the index of the first element >= point
-    if point < l[0][0] or point > l[-1][0]:
-      return None
-    if point == l[0][0]:
-      return l[0]
-    if point == l[-1][0]:
-      return l[-1]
-    right_index = bisect.bisect_right(l, [point])
-    left_index = right_index - 1
-    # ratio 0 means use the left_index one, 1 means the right_index one
-    ratio = (point - l[left_index][0])/(l[right_index][0] - l[left_index][0])
-    return [x[0]*(1-ratio) + x[1]*ratio
-            for x in zip(l[left_index], l[right_index])]
 
   def _genius_estimate(self, progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType):
     """Return an estimate for the total print time remaining."""
@@ -71,10 +73,19 @@ class GeniusEstimator(PrintTimeEstimator):
     if new_progress_index < 0:
       return None # We're not even in range yet.
     if new_progress_index != self._current_progress_index:
-      # We advanced to a new index, let's use the new estimate.
-      self._current_progress_index = new_progress_index
+      # We advanced to a new index, let's make new estimates.
+      if (progress > metadata["analysis"]["firstFilament"] and
+          not "firstFilamentPrintTime" in self._current_history):
+        self._current_history["firstFilamentPrintTime"] = printTime
+      if (not "lastFilamentPrintTime" in self._current_history or
+          progress <= metadata["analysis"]["lastFilament"]):
+        self._current_history["lastFilamentPrintTime"] = printTime
       # This is our best guess for the total print time.
-      self._current_total_printTime = self._interpolate(filepos_to_progress, progress)[1] + printTime
+      interpolation = _interpolate(filepos_to_progress, progress)
+      if not interpolation:
+        return None
+      self._current_total_printTime = interpolation[1] + printTime
+      self._current_progress_index = new_progress_index
     remaining_print_time = self._current_total_printTime - printTime
     return remaining_print_time, "genius"
 
@@ -125,22 +136,58 @@ class GCodeAnalyserAnalysisQueue(GcodeAnalysisQueue):
         self._finished_callback(self._current, results)
       except Exception as e:
         logger.warning("Failed to run '{}'".format(command), exc_info=e)
+    if "estimatedPrintTime" in results:
+      # Before we potentially modify the result from analysis, save it.
+      results["analysisPrintTime"] = results["estimatedPrintTime"]
+      # TODO: Possibly adjust the estimatedPrintTime using print_history.
+      results["estimatedPrintTime"] = results["analysisPrintTime"]
     return results
 
 class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
-                               octoprint.plugin.AssetPlugin,
-                               octoprint.plugin.TemplatePlugin,
-                               octoprint.plugin.StartupPlugin):
+                            octoprint.plugin.AssetPlugin,
+                            octoprint.plugin.TemplatePlugin,
+                            octoprint.plugin.StartupPlugin,
+                            octoprint.plugin.EventHandlerPlugin):
   def __init__(self):
     self._logger = logging.getLogger(__name__)
+    self._current_history = None
   ##~~ SettingsPlugin mixin
 
   def get_settings_defaults(self):
     return dict(
         analyzers=[],
         exactDurations=True,
-        enableOctoPrintAnalyzer=True
+        enableOctoPrintAnalyzer=True,
+        print_history=[]
     )
+
+  ##~~ EventHandlerPlugin API
+  def on_event(self, event, payload):
+    """Record how long print's actually took when they succeed.
+
+    We want to record how long it took to finish this print so that we can make
+    future estimates more accurate using linear regression.
+    """
+    if event == "PrintDone":
+      # Store the details and also the timestamp.
+      if not self._settings.has(["print_history"]):
+        print_history = []
+      else:
+        print_history = self._settings.get(["print_history"])
+      metadata = self._file_manager.get_metadata(payload["origin"], payload["path"])
+      if not "analysis" in metadata or not "analysisPrintTime" in metadata["analysis"]:
+        return
+      analysis_print_time = metadata["analysis"]["analysisPrintTime"]
+      self._current_history["payload"] = payload
+      self._current_history["timestamp"] = time.time()
+      self._current_history["analysisPrintTime"] = analysis_print_time
+      print_history.append(self._current_history)
+      self._current_history = None
+      print_history.sort(key=lambda x: x["timestamp"], reverse=True)
+      MAX_HISTORY_ITEMS = 5
+      del print_history[MAX_HISTORY_ITEMS:]
+      self._settings.set(["print_history"], print_history)
+      self._settings.save() # This might also save settings that we didn't intend to save...
 
   ##~~ StartupPlugin API
 
@@ -170,8 +217,11 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     return dict(gcode=lambda finished_callback: GCodeAnalyserAnalysisQueue(
         finished_callback, self))
   def custom_estimation_factory(self, *args, **kwargs):
-    return lambda job_type: GeniusEstimator(
-        job_type, self._printer, self._file_manager, self._logger)
+    def make_genius_estimator(job_type):
+      self._current_history = {}
+      return GeniusEstimator(
+          job_type, self._printer, self._file_manager, self._logger, self._current_history)
+    return make_genius_estimator
 
   ##~~ Softwareupdate hook
 
