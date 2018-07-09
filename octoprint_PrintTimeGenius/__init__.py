@@ -52,6 +52,7 @@ class GeniusEstimator(PrintTimeEstimator):
     self._current_history = current_history
     self._current_progress_index = -1 # Points to the entry that we used for remaining time
     self._current_total_printTime = None # When we started using the current_progress
+    self._called_genius_yet = False
 
   def _genius_estimate(self, progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType):
     """Return an estimate for the total print time remaining."""
@@ -59,6 +60,10 @@ class GeniusEstimator(PrintTimeEstimator):
     # It maps from filepos to estimated remaining time.
     # filepos is between 0 and 1, same as progress.
     # actual progress is in seconds
+    if not self._called_genius_yet:
+      # Pretend like the first call is always at progress 0
+      progress = 0
+      self._called_genius_yet = True
     metadata = self._file_manager.get_metadata(self._origin, self._path)
     if not metadata:
       return None
@@ -80,10 +85,10 @@ class GeniusEstimator(PrintTimeEstimator):
       if (not "lastFilamentPrintTime" in self._current_history or
           progress <= metadata["analysis"]["lastFilament"]):
         self._current_history["lastFilamentPrintTime"] = printTime
-      # This is our best guess for the total print time.
       interpolation = _interpolate(filepos_to_progress, progress)
       if not interpolation:
         return None
+      # This is our best guess for the total print time.
       self._current_total_printTime = interpolation[1] + printTime
       self._current_progress_index = new_progress_index
     remaining_print_time = self._current_total_printTime - printTime
@@ -105,18 +110,63 @@ class GeniusEstimator(PrintTimeEstimator):
     self._logger.debug(", ".join(map(str, [printTime, default_result[0], default_result[1], result[0], result[1], progress])))
     return result
 
-class GCodeAnalyserAnalysisQueue(GcodeAnalysisQueue):
+class GeniusAnalysisQueue(GcodeAnalysisQueue):
   """Generate an analysis to use for printing time remaining later."""
   def __init__(self, finished_callback, plugin):
-    super(GCodeAnalyserAnalysisQueue, self).__init__(finished_callback)
+    super(GeniusAnalysisQueue, self).__init__(finished_callback)
     self._plugin = plugin
+
+  def compensate_analysis(self, analysis):
+    """Compensate for the analyzed print time by looking at previous statistics of
+    how long it took to heat up or cool down.
+    Modifies the analysis in place.
+    """
+    try:
+      if not self._plugin._settings.has(["print_history"]):
+        return
+      print_history = self._plugin._settings.get(["print_history"])
+      if not print_history:
+        return
+      # How long did it take to heat up on previous prints?
+      heat_up_times = [ph["firstFilamentPrintTime"]
+                       for ph in print_history]
+      average_heat_up_time = sum(heat_up_times) / len(heat_up_times)
+      # How long did it take to cool down on previous prints?
+      cool_down_times = [ph["payload"]["time"] - ph["lastFilamentPrintTime"]
+                         for ph in print_history]
+      average_cool_down_time = sum(cool_down_times) / len(cool_down_times)
+      # Factor from the time actual time spent extruding to the predicted.
+      print_time_factor = [(ph["lastFilamentPrintTime"] - ph["firstFilamentPrintTime"]) /
+                           (ph["analysisLastFilamentPrintTime"] - ph["analysisFirstFilamentPrintTime"])
+                           for ph in print_history]
+      average_print_time_factor = sum(print_time_factor) / len(print_time_factor)
+      # Now make a new progress map.
+      new_progress = []
+      last_filament_remaining_time = _interpolate(analysis["progress"],
+                                                  analysis["lastFilament"])[1]
+      for p in analysis["progress"]:
+        if p[0] < analysis["firstFilament"]:
+          continue # Ignore anything before the first filament.
+        remaining_time = p[1] # Starting value.
+        remaining_time -= last_filament_remaining_time # Remove expected cooldown.
+        remaining_time *= average_print_time_factor # Compensate for scale.
+        remaining_time += average_cool_down_time # Add in average cooldown
+        new_progress.append([p[0], remaining_time])
+        if p[0] >= analysis["lastFilament"]:
+          break # Don't add estimates from the cooldown
+      new_progress.insert(0, [0, new_progress[0][1] + average_heat_up_time])
+      new_progress.append([1,0])
+      analysis["progress"] = new_progress
+      analysis["estimatedPrintTime"] = new_progress[0][1]
+    except Exception as e:
+      self._plugin._logger.warning("Failed to compensate", exc_info=e)
 
   def _do_analysis(self, high_priority=False):
     logger = self._plugin._logger
     results = None
     if self._plugin._settings.get(["enableOctoPrintAnalyzer"]):
       logger.info("Running built-in analysis.")
-      results = super(GCodeAnalyserAnalysisQueue, self)._do_analysis(high_priority)
+      results = super(GeniusAnalysisQueue, self)._do_analysis(high_priority)
       logger.info("Result: {}".format(results))
       self._finished_callback(self._current, results)
     else:
@@ -136,11 +186,21 @@ class GCodeAnalyserAnalysisQueue(GcodeAnalysisQueue):
         self._finished_callback(self._current, results)
       except Exception as e:
         logger.warning("Failed to run '{}'".format(command), exc_info=e)
-    if "estimatedPrintTime" in results:
-      # Before we potentially modify the result from analysis, save it.
+    # Before we potentially modify the result from analysis, save them.
+    try:
       results["analysisPrintTime"] = results["estimatedPrintTime"]
-      # TODO: Possibly adjust the estimatedPrintTime using print_history.
-      results["estimatedPrintTime"] = results["analysisPrintTime"]
+      results["analysisFirstFilamentPrintTime"] = (
+          results["analysisPrintTime"] - _interpolate(
+              results["progress"],
+              results["firstFilament"])[1])
+      results["analysisLastFilamentPrintTime"] = (
+          results["analysisPrintTime"] - _interpolate(
+              results["progress"],
+              results["lastFilament"])[1])
+      self.compensate_analysis(results) # Adjust based on history
+      logger.info("Compensated result: {}".format(results))
+    except Exception as e:
+      logger.warning("Failed to compensate", exc_info=e)
     return results
 
 class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
@@ -177,10 +237,12 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       metadata = self._file_manager.get_metadata(payload["origin"], payload["path"])
       if not "analysis" in metadata or not "analysisPrintTime" in metadata["analysis"]:
         return
-      analysis_print_time = metadata["analysis"]["analysisPrintTime"]
       self._current_history["payload"] = payload
       self._current_history["timestamp"] = time.time()
-      self._current_history["analysisPrintTime"] = analysis_print_time
+      for x in ("analysisPrintTime",
+                "analysisFirstFilamentPrintTime",
+                "analysisLastFilamentPrintTime"):
+        self._current_history[x] = metadata["analysis"][x]
       print_history.append(self._current_history)
       self._current_history = None
       print_history.sort(key=lambda x: x["timestamp"], reverse=True)
@@ -214,7 +276,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
 
   ##~~ Gcode Analysis Hook
   def custom_gcode_analysis_queue(self, *args, **kwargs):
-    return dict(gcode=lambda finished_callback: GCodeAnalyserAnalysisQueue(
+    return dict(gcode=lambda finished_callback: GeniusAnalysisQueue(
         finished_callback, self))
   def custom_estimation_factory(self, *args, **kwargs):
     def make_genius_estimator(job_type):
