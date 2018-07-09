@@ -42,11 +42,11 @@ def _interpolate(l, point):
   return [x[0]*(1-ratio) + x[1]*ratio
           for x in zip(l[left_index], l[right_index])]
 
-class GCodeAnalyserGenius(PrintTimeEstimator):
+class GeniusEstimator(PrintTimeEstimator):
   """Uses previous generated analysis to estimate print time remaining."""
 
   def __init__(self, job_type, printer, file_manager, logger):
-    super(GCodeAnalyserGenius, self).__init__(job_type)
+    super(GeniusEstimator, self).__init__(job_type)
     self._path = printer.get_current_job()["file"]["path"]
     self._origin = printer.get_current_job()["file"]["origin"]
     self._file_manager = file_manager
@@ -82,7 +82,7 @@ class GCodeAnalyserGenius(PrintTimeEstimator):
     return remaining_print_time, "genius"
 
   def estimate(self, progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType):
-    default_result = super(GCodeAnalyserGenius, self).estimate(
+    default_result = super(GeniusEstimator, self).estimate(
         progress, printTime, cleanedPrintTime,
         statisticalTotalPrintTime, statisticalTotalPrintTimeType)
     result = default_result
@@ -237,7 +237,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     return dict(gcode=lambda finished_callback: GCodeAnalyserAnalysisQueue(
         finished_callback, self))
   def custom_estimation_factory(self, *args, **kwargs):
-    return lambda job_type: GCodeAnalyserGenius(
+    return lambda job_type: GeniusEstimator(
         job_type, self._printer, self._file_manager, self._logger)
 
   ##~~ Softwareupdate hook
