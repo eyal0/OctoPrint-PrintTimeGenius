@@ -261,6 +261,11 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
 
     self._logger.addHandler(logging_handler)
     self._logger.propagate = False
+    self._file_manager.original_add_file = self._file_manager.add_file
+    def new_add_file(destination, path, file_object, links=None, allow_overwrite=False, printer_profile=None, analysis=None, display=None):
+      return self._file_manager.original_add_file(destination, path, file_object, links, allow_overwrite, printer_profile, None, display)
+    self._file_manager.add_file = new_add_file
+
 
 
   ##~~ AssetPlugin mixin
