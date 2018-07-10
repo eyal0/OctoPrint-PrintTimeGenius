@@ -5,12 +5,16 @@ import subprocess
 import sys
 import json
 import os
+import platform
 
 def main():
+  binary_base_name = sys.argv[1]
+  machine = platform.machine()
+  gcode = sys.argv[2]
   cmd = [
       os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])),
-                   "marlin-calc"),
-      sys.argv[1]]
+                   "{}.{}".format(binary_base_name, machine)),
+      gcode]
   output = subprocess.check_output(cmd)
   progress = []
   result = {}
