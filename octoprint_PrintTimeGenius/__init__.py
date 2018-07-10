@@ -20,6 +20,8 @@ import subprocess
 import json
 import shlex
 import time
+import os
+import sys
 
 def _interpolate(l, point):
   """Use the point value to interpolate a new value from the list.
@@ -181,8 +183,8 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
       logger.info("Running: {}".format(command))
       try:
         results_text = subprocess.check_output(shlex.split(command))
+        logger.info("Result: {}".format(results_text))
         new_results = json.loads(results_text)
-        logger.info("Result: {}".format(new_results))
         results.update(new_results)
         logger.info("Merged result: {}".format(results))
         self._finished_callback(self._current, results)
@@ -216,12 +218,18 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
   ##~~ SettingsPlugin mixin
 
   def get_settings_defaults(self):
-    return dict(
-        analyzers=[],
-        exactDurations=True,
-        enableOctoPrintAnalyzer=True,
-        print_history=[]
-    )
+    built_in_analyzers = ["analyze_gcode_comments.py", "analyze_marlin.py"]
+    return {
+        "analyzers": [
+            {"command": '{python} {analyzer} "{{gcode}}"'.format(
+                python = sys.executable,
+                analyzer = os.path.join(os.path.dirname(os.path.realpath(__file__)), x)),
+             "enabled": True}
+            for x in built_in_analyzers],
+        "exactDurations": True,
+        "enableOctoPrintAnalyzer": True,
+        "print_history": []
+    }
 
   ##~~ EventHandlerPlugin API
   def on_event(self, event, payload):

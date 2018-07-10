@@ -116,7 +116,7 @@ def get_analysis_from_gcode(machinecode_path):
         [[filepos/file_position, analysis['estimatedPrintTime'] - remaining]
           for [filepos, remaining] in forward_progress] +
         [[1, 0]])
-  return json.loads(json.dumps(analysis))
+  return json.dumps(analysis)
 
 if __name__ == "__main__":
   print(get_analysis_from_gcode(sys.argv[1]))
