@@ -103,11 +103,11 @@ class GeniusEstimator(PrintTimeEstimator):
       genius_result = self._genius_estimate(
           progress, printTime, cleanedPrintTime,
           statisticalTotalPrintTime, statisticalTotalPrintTimeType)
-      if genius_result and statisticalTotalPrintTimeType != "average": # If we succeed.
+      if genius_result:
         result = genius_result
     except Exception as e:
       self._logger.warning("Failed to estimate, ignoring.", exc_info=e)
-    self._logger.debug(", ".join(map(str, [printTime, default_result[0], default_result[1], result[0], result[1], progress])))
+    self._logger.debug(", ".join(map(str, [printTime, default_result[0], default_result[1], genius_result[0], genius_result[1], progress])))
     return result
 
 class GeniusAnalysisQueue(GcodeAnalysisQueue):
