@@ -55,7 +55,9 @@ class GeniusEstimator(PrintTimeEstimator):
     self._called_genius_yet = False
 
   def _genius_estimate(self, progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType):
-    """Return an estimate for the total print time remaining."""
+    """Return an estimate for the total print time remaining.
+    Returns (remaining_time_in_seconds, "genius") or None if it failed.
+    """
     # The progress is a sorted list of pairs [filepos, remaining_time].
     # It maps from filepos to estimated remaining time.
     # filepos is between 0 and 1, same as progress.
