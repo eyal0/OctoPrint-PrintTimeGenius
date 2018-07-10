@@ -184,6 +184,11 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
         logger.warning("Failed to run '{}'".format(command), exc_info=e)
     # Before we potentially modify the result from analysis, save them.
     try:
+      if not all(x in results
+                 for x in ["progress",
+                           "firstFilament",
+                           "lastFilament"]):
+        return results
       results["analysisPrintTime"] = results["estimatedPrintTime"]
       results["analysisFirstFilamentPrintTime"] = (
           results["analysisPrintTime"] - _interpolate(
@@ -210,12 +215,14 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
   ##~~ SettingsPlugin mixin
 
   def get_settings_defaults(self):
-    built_in_analyzers = ["analyze_gcode_comments.py", "analyze_marlin.py"]
+    built_in_analyzers = [["analyzers/analyze_gcode_comments.py"],
+                          ["analyzers/analyze_progress.py", "marlin-calc"]]
+    current_path = os.path.dirname(os.path.realpath(__file__))
     return {
         "analyzers": [
             {"command": '{python} {analyzer} "{{gcode}}"'.format(
                 python = sys.executable,
-                analyzer = os.path.join(os.path.dirname(os.path.realpath(__file__)), x)),
+                analyzer = " ".join([os.path.join(current_path, x[0])] + x[1:])),
              "enabled": True}
             for x in built_in_analyzers],
         "exactDurations": True,
