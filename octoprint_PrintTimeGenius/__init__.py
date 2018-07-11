@@ -271,6 +271,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
 
     self._logger.addHandler(logging_handler)
     self._logger.propagate = False
+    # TODO: Remove the below after https://github.com/foosel/OctoPrint/pull/2723 is merged.
     self._file_manager.original_add_file = self._file_manager.add_file
     def new_add_file(destination, path, file_object, links=None, allow_overwrite=False, printer_profile=None, analysis=None, display=None):
       return self._file_manager.original_add_file(destination, path, file_object, links, allow_overwrite, printer_profile, None, display)
