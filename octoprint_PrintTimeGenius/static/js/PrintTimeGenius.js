@@ -10,6 +10,10 @@ $(function() {
 
     self.settingsViewModel = parameters[0];
     self.printerStateViewModel = parameters[1];
+    self.filesViewModel = parameters[2];
+    self.listHelper = self.filesViewModel.listHelper;
+    self.FileList = ko.observableArray();
+    self.selectedGcode = ko.observable();
 
     // Overwrite the printTimeLeftOriginString function
     ko.extenders.addGenius = function(target, option) {
@@ -45,6 +49,31 @@ $(function() {
     });
     self.printerStateViewModel.printTimeLeftOrigin.valueHasMutated();
 
+    self.getAllGcodeFiles = function(items = self.listHelper.allItems) {
+      let results = [];
+      for (let item of items) {
+        if (item["type"] == "machinecode") {
+          results.push(item);
+        }
+        if ("children" in item) {
+          results = results.concat(self.getAllGcodeFiles(item.children));
+        }
+      }
+      return results;
+    }
+
+    self.updateFileList = function () {
+      self.FileList(self.getAllGcodeFiles());
+    }
+
+    self.analyzeCurrentFile = function () {
+      console.log(self.selectedGcode());
+      let model = self.listHelper.getItem(function(item) { return item["hash"] == self.selectedGcode() });
+      console.log(model);
+      OctoPrintClient.get("plugins/PrintTimeGenius/analyze")
+      return model;
+    }
+
     self.onBeforeBinding = function() {
       let settings = self.settingsViewModel.settings;
       let printTimeGeniusSettings = settings.plugins.PrintTimeGenius;
@@ -68,7 +97,7 @@ $(function() {
       });
       // Force an update because this is called after the format function has already run.
       self.exactDurations.valueHasMutated();
-
+      self.updateFileList();
     }
 
     self.addAnalyzer = function() {
@@ -87,7 +116,7 @@ $(function() {
   OCTOPRINT_VIEWMODELS.push({
     construct: PrintTimeGeniusViewModel,
     // ViewModels your plugin depends on, e.g. loginStateViewModel, settingsViewModel, ...
-    dependencies: ["settingsViewModel", "printerStateViewModel"],
+    dependencies: ["settingsViewModel", "printerStateViewModel", "filesViewModel"],
     // Elements to bind to, e.g. #settings_plugin_PrintTimeGenius, #tab_plugin_PrintTimeGenius, ...
     elements: [ "#settings_plugin_PrintTimeGenius" ]
   });

@@ -208,7 +208,8 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
                             octoprint.plugin.AssetPlugin,
                             octoprint.plugin.TemplatePlugin,
                             octoprint.plugin.StartupPlugin,
-                            octoprint.plugin.EventHandlerPlugin):
+                            octoprint.plugin.EventHandlerPlugin,
+                            octoprint.plugin.BlueprintPlugin):
   def __init__(self):
     self._logger = logging.getLogger(__name__)
     self._current_history = None
@@ -259,6 +260,20 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       del print_history[MAX_HISTORY_ITEMS:]
       self._settings.set(["print_history"], print_history)
       self._settings.save() # This might also save settings that we didn't intend to save...
+
+  @octoprint.plugin.BlueprintPlugin.route("/analyze", methods=["GET"])
+  def analyze_file(self, destination, path):
+    print("here")
+    """Analayze a file right now and return the logged results."""
+    queue_entry = self._file_manager._analysis_queue_entry(destination,
+                                                           path_in_storage,
+                                                           printer_profile=self._printer.printer_profile,
+                                                           analysis=None)
+    if queue_entry is None:
+      return ""
+    temp_queue = GeniusAnalysisQueue(finished_callback, {})
+    temp_queue.enqueue(queue_entry)
+    return ""
 
   ##~~ StartupPlugin API
 

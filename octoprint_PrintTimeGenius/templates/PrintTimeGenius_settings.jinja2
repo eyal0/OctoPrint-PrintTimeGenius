@@ -27,5 +27,16 @@
         <a title="Add Analyzer" class="btn btn-primary" data-bind="click: addAnalyzer"><i class="fa fa-plus"></i></a>
       </div>
     </div>
+    <h3>{{ _('Analyze') }}</h3>
+    You can use this to run an analysis right now and also look at the output to debug problems.
+    <label for="stlviewer_file_list">File</label>
+    <select id="stlviewer_file_list" data-bind="options: FileList,
+                                                optionsText: 'path',
+                                                optionsValue: 'hash',
+                                                optionsCaption: 'Choose...',
+                                                value: selectedGcode,
+                                                event: { mouseover: updateFileList }">
+    </select>
+    <button class="btn pull-right" data-bind="event: { click: analyzeCurrentFile }">{{ _('Analyze') }}</button>
   </div>
 </form>
