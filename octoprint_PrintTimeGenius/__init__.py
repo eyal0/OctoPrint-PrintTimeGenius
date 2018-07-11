@@ -264,7 +264,8 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
 
   def on_startup(self, host, port):
     # setup our custom logger
-    logging_handler = logging.handlers.RotatingFileHandler(self._settings.get_plugin_logfile_path(postfix="engine"), maxBytes=2*1024*1024)
+    from octoprint.logging.handlers import CleaningTimedRotatingFileHandler
+    logging_handler = CleaningTimedRotatingFileHandler(self._settings.get_plugin_logfile_path(postfix="engine"), when="D", backupCount=3)
     logging_handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
     logging_handler.setLevel(logging.DEBUG)
 
