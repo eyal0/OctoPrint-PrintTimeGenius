@@ -2,3 +2,4 @@ include README.md
 recursive-include octoprint_PrintTimeGenius/templates *
 recursive-include octoprint_PrintTimeGenius/translations *
 recursive-include octoprint_PrintTimeGenius/static *
+graft octoprint_PrintTimeGenius/analyzers

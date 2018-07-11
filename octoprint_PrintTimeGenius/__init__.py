@@ -2,14 +2,6 @@
 from __future__ import absolute_import
 from __future__ import division
 
-### (Don't forget to remove me)
-# This is a basic skeleton for your plugin's __init__.py. You probably want to adjust the class name of your plugin
-# as well as the plugin mixins it's subclassing from. This is really just a basic skeleton to get you started,
-# defining your plugin as a template plugin, settings and asset plugin. Feel free to add or remove mixins
-# as necessary.
-#
-# Take a look at the documentation on what other plugin mixins are available.
-
 import octoprint.plugin
 import octoprint.filemanager.storage
 from octoprint.printer.estimation import PrintTimeEstimator
@@ -20,6 +12,8 @@ import subprocess
 import json
 import shlex
 import time
+import os
+import sys
 
 def _interpolate(l, point):
   """Use the point value to interpolate a new value from the list.
@@ -55,7 +49,9 @@ class GeniusEstimator(PrintTimeEstimator):
     self._called_genius_yet = False
 
   def _genius_estimate(self, progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType):
-    """Return an estimate for the total print time remaining."""
+    """Return an estimate for the total print time remaining.
+    Returns (remaining_time_in_seconds, "genius") or None if it failed.
+    """
     # The progress is a sorted list of pairs [filepos, remaining_time].
     # It maps from filepos to estimated remaining time.
     # filepos is between 0 and 1, same as progress.
@@ -103,11 +99,11 @@ class GeniusEstimator(PrintTimeEstimator):
       genius_result = self._genius_estimate(
           progress, printTime, cleanedPrintTime,
           statisticalTotalPrintTime, statisticalTotalPrintTimeType)
-      if genius_result and statisticalTotalPrintTimeType != "average": # If we succeed.
+      if genius_result:
         result = genius_result
     except Exception as e:
       self._logger.warning("Failed to estimate, ignoring.", exc_info=e)
-    self._logger.debug(", ".join(map(str, [printTime, default_result[0], default_result[1], result[0], result[1], progress])))
+    self._logger.debug(", ".join(map(str, [printTime, default_result[0], default_result[1], genius_result[0], genius_result[1], progress])))
     return result
 
 class GeniusAnalysisQueue(GcodeAnalysisQueue):
@@ -179,8 +175,8 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
       logger.info("Running: {}".format(command))
       try:
         results_text = subprocess.check_output(shlex.split(command))
+        logger.info("Result: {}".format(results_text))
         new_results = json.loads(results_text)
-        logger.info("Result: {}".format(new_results))
         results.update(new_results)
         logger.info("Merged result: {}".format(results))
         self._finished_callback(self._current, results)
@@ -188,6 +184,11 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
         logger.warning("Failed to run '{}'".format(command), exc_info=e)
     # Before we potentially modify the result from analysis, save them.
     try:
+      if not all(x in results
+                 for x in ["progress",
+                           "firstFilament",
+                           "lastFilament"]):
+        return results
       results["analysisPrintTime"] = results["estimatedPrintTime"]
       results["analysisFirstFilamentPrintTime"] = (
           results["analysisPrintTime"] - _interpolate(
@@ -214,12 +215,20 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
   ##~~ SettingsPlugin mixin
 
   def get_settings_defaults(self):
-    return dict(
-        analyzers=[],
-        exactDurations=True,
-        enableOctoPrintAnalyzer=True,
-        print_history=[]
-    )
+    built_in_analyzers = [["analyzers/analyze_gcode_comments.py"],
+                          ["analyzers/analyze_progress.py", "marlin-calc"]]
+    current_path = os.path.dirname(os.path.realpath(__file__))
+    return {
+        "analyzers": [
+            {"command": '{python} {analyzer} "{{gcode}}"'.format(
+                python = sys.executable,
+                analyzer = " ".join([os.path.join(current_path, x[0])] + x[1:])),
+             "enabled": True}
+            for x in built_in_analyzers],
+        "exactDurations": True,
+        "enableOctoPrintAnalyzer": True,
+        "print_history": []
+    }
 
   ##~~ EventHandlerPlugin API
   def on_event(self, event, payload):
@@ -255,7 +264,8 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
 
   def on_startup(self, host, port):
     # setup our custom logger
-    logging_handler = logging.handlers.RotatingFileHandler(self._settings.get_plugin_logfile_path(postfix="engine"), maxBytes=2*1024*1024)
+    from octoprint.logging.handlers import CleaningTimedRotatingFileHandler
+    logging_handler = CleaningTimedRotatingFileHandler(self._settings.get_plugin_logfile_path(postfix="engine"), when="D", backupCount=3)
     logging_handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
     logging_handler.setLevel(logging.DEBUG)
 
