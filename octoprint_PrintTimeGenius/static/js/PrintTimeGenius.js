@@ -68,11 +68,12 @@ $(function() {
 
     self.analyzeCurrentFile = function () {
       let item = self.selectedGcode();
-      console.log(item);
+      if (!item) {
+        return;
+      }
       let gcode = item["origin"] + "/" + item["path"];
       url = OctoPrint.getBlueprintUrl("PrintTimeGenius") + "analyze/" + gcode;
-      let results = OctoPrint.get(url)
-      console.log(results);
+      OctoPrint.get(url)
     }
 
     self.onBeforeBinding = function() {

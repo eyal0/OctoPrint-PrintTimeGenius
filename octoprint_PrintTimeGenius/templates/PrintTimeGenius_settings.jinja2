@@ -28,14 +28,33 @@
       </div>
     </div>
     <h3>{{ _('Analyze') }}</h3>
-    You can use this to run an analysis right now and also look at the output to debug problems.
-    <label for="stlviewer_file_list">File</label>
-    <select id="stlviewer_file_list" data-bind="options: FileList,
-                                                optionsText: 'path',
-                                                optionsCaption: 'Choose...',
-                                                value: selectedGcode,
-                                                event: { mouseover: updateFileList }">
-    </select>
-    <button class="btn pull-right" data-bind="event: { click: analyzeCurrentFile }">{{ _('Analyze') }}</button>
+    You can use this to run an analysis right now. and also look at the output to debug problems.
+    <div class="row-fluid">
+      <label class="span9">File to analyze:
+        <select class="span9" id="stlviewer_file_list" data-bind="options: FileList,
+                                                    optionsText: 'path',
+                                                    optionsCaption: 'Choose...',
+                                                    value: selectedGcode,
+                                                    event: { mouseover: updateFileList }">
+        </select>
+      </label>
+      <button class="btn" data-bind="event: { click: analyzeCurrentFile }">{{ _('Analyze') }}</button>
+    </div>
+    <h3>{{ _('Debug') }}</h3>
+    <h4>{{ _('Debug Analysis') }}</h4>
+    Analyze a file and then <a href="downloads/logs/plugin_PrintTimeGenius_engine.log">download the log</a>.
+    <h4>{{ _('Debug Estimates') }}</h4>
+    <p>If you want to make a graph of the print time estimate and compare with OctoPrint's built-in estimates:
+      <ol>
+        <li>In settings, go to Logging.</li>
+        <li>Set "octoprint.plugins.PrintTimeGenius" level to "DEBUG".</li>
+        <li>Click on the blue plus.</li>
+        <li>Click on save.</li>
+      </ol>
+    </p>
+    <p>
+      Now print something and the log will fill with a <a href="https://en.wikipedia.org/wiki/Comma-separated_values">csv</a>.
+      <a href="downloads/logs/plugin_PrintTimeGenius_engine.log">Download the log</a>, remove unnecessary lines, and import to a spreadsheet.
+    </p>
   </div>
 </form>

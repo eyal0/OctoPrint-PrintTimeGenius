@@ -262,13 +262,14 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       self._settings.save() # This might also save settings that we didn't intend to save...
 
   @octoprint.plugin.BlueprintPlugin.route("/analyze/<origin>/<path:path>", methods=["GET"])
+  @octoprint.plugin.BlueprintPlugin.route("/analyse/<origin>/<path:path>", methods=["GET"])
   def analyze_file(self, origin, path):
     """Add a file to the analysis queue."""
     queue_entry = self._file_manager._analysis_queue_entry(origin, path)
     if queue_entry is None:
-      return
+      return ""
     results = self._file_manager.analyse(origin, path)
-    return
+    return ""
 
   ##~~ StartupPlugin API
 
