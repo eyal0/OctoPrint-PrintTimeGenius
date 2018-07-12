@@ -23,7 +23,6 @@ tags:
 - print time
 - analysis
 
-# TODO
 screenshots:
 - url: /assets/img/plugins/PrintTimeGenius/precise.png
   alt: Time remaining with a gold star next to it
@@ -40,8 +39,8 @@ compatibility:
 
 ---
 
-Using advanced gcode analyzers and combining it with the printing history, generate highly accurate gcode printing time estimations.
+Generate highly accurate gcode printing time estimations using advanced gcode analyzers combined with the printing history.
 
-PrintTimeGenius provides estimates that are accurate to within jsut a few minutes, even accounting for the time to heat up the nozzle/bed.  It also has an advanced algorithm to calculate the print time remaining while running so that even if the original estimate was wrong, it will still converge on the correct one.
+PrintTimeGenius provides estimates that are accurate to within just minutes, sometimes even seconds, even accounting for the time to heat up the nozzle/bed.  It also has an advanced algorithm to calculate the print time remaining while running so that even if the original estimate was wrong, it will still converge on the correct one.
 
-PrintTimeGenius takes estimates embedded in your gcode, put there by slic3r or cura.  It can also run a Marlin or Smoothieware simulation to provide line-by-line accuracy, often accurate within 0.2% of actual print time.
+PrintTimeGenius uses the estimates embedded in your gcode, put there by slic3r or cura.  It also runs a Marlin or Smoothieware simulation to provide line-by-line accuracy, often accurate within 0.2% of actual print time.
