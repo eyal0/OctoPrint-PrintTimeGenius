@@ -94,16 +94,21 @@ class GeniusEstimator(PrintTimeEstimator):
     default_result = super(GeniusEstimator, self).estimate(
         progress, printTime, cleanedPrintTime,
         statisticalTotalPrintTime, statisticalTotalPrintTimeType)
-    result = default_result
+    result = default_result # This is the result that we will report.
+    genius_result = default_result # Genius result defaults to the default_result
     try:
       genius_result = self._genius_estimate(
           progress, printTime, cleanedPrintTime,
           statisticalTotalPrintTime, statisticalTotalPrintTimeType)
       if genius_result:
-        result = genius_result
+        result = genius_result # If genius worked, use it.
     except Exception as e:
       self._logger.warning("Failed to estimate, ignoring.", exc_info=e)
-    self._logger.debug(", ".join(map(str, [printTime, default_result[0], default_result[1], genius_result[0], genius_result[1], progress])))
+    if not default_result:
+      default_result = (0, None)
+    if not genius_result:
+      genius_result = (0, None)
+    self._logger.debug(", " + ", ".join(map(str, [printTime, default_result[0], default_result[1], genius_result[0], genius_result[1], progress])))
     return result
 
 class GeniusAnalysisQueue(GcodeAnalysisQueue):
@@ -113,6 +118,7 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
     self._plugin = plugin
 
   def compensate_analysis(self, analysis):
+    logger = self._plugin._logger
     """Compensate for the analyzed print time by looking at previous statistics of
     how long it took to heat up or cool down.
     Modifies the analysis in place.
@@ -124,18 +130,28 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
       if not print_history:
         return
       # How long did it take to heat up on previous prints?
+      logging.info("Gathering compensation data...")
       heat_up_times = [ph["firstFilamentPrintTime"]
                        for ph in print_history]
+      logger.info("Recent heat-up times in seconds: {}".format(", ".join(map(str, heat_up_times))))
       average_heat_up_time = sum(heat_up_times) / len(heat_up_times)
+      logger.info("Average heat-up: {} seconds".format(average_heat_up_time))
       # How long did it take to cool down on previous prints?
       cool_down_times = [ph["payload"]["time"] - ph["lastFilamentPrintTime"]
                          for ph in print_history]
+      logger.info("Recent cool-down times in seconds: {}".format(", ".join(map(str, cool_down_times))))
       average_cool_down_time = sum(cool_down_times) / len(cool_down_times)
+      logger.info("Average cool-down: {} seconds".format(average_cool_down_time))
       # Factor from the time actual time spent extruding to the predicted.
+      logger.info("Time spent printing, actual vs predicted: {}".format(
+          ", ".join("{}/{}".format(ph["lastFilamentPrintTime"] - ph["firstFilamentPrintTime"],
+                                   ph["analysisLastFilamentPrintTime"] - ph["analysisFirstFilamentPrintTime"])
+                    for ph in print_history)))
       print_time_factor = [(ph["lastFilamentPrintTime"] - ph["firstFilamentPrintTime"]) /
                            (ph["analysisLastFilamentPrintTime"] - ph["analysisFirstFilamentPrintTime"])
                            for ph in print_history]
       average_print_time_factor = sum(print_time_factor) / len(print_time_factor)
+      logger.info("Average scaling factor: {}".format(average_print_time_factor))
       # Now make a new progress map.
       new_progress = []
       last_filament_remaining_time = _interpolate(analysis["progress"],
@@ -143,19 +159,19 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
       for p in analysis["progress"]:
         if p[0] < analysis["firstFilament"]:
           continue # Ignore anything before the first filament.
+        if p[0] >= analysis["lastFilament"]:
+          break # Don't add estimates from the cooldown
         remaining_time = p[1] # Starting value.
         remaining_time -= last_filament_remaining_time # Remove expected cooldown.
         remaining_time *= average_print_time_factor # Compensate for scale.
         remaining_time += average_cool_down_time # Add in average cooldown
         new_progress.append([p[0], remaining_time])
-        if p[0] >= analysis["lastFilament"]:
-          break # Don't add estimates from the cooldown
       new_progress.insert(0, [0, new_progress[0][1] + average_heat_up_time])
       new_progress.append([1,0])
       analysis["progress"] = new_progress
       analysis["estimatedPrintTime"] = new_progress[0][1]
     except Exception as e:
-      self._plugin._logger.warning("Failed to compensate", exc_info=e)
+      logger.warning("Failed to compensate", exc_info=e)
 
   def _do_analysis(self, high_priority=False):
     logger = self._plugin._logger
