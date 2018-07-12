@@ -261,19 +261,14 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       self._settings.set(["print_history"], print_history)
       self._settings.save() # This might also save settings that we didn't intend to save...
 
-  @octoprint.plugin.BlueprintPlugin.route("/analyze", methods=["GET"])
-  def analyze_file(self, destination, path):
-    print("here")
-    """Analayze a file right now and return the logged results."""
-    queue_entry = self._file_manager._analysis_queue_entry(destination,
-                                                           path_in_storage,
-                                                           printer_profile=self._printer.printer_profile,
-                                                           analysis=None)
+  @octoprint.plugin.BlueprintPlugin.route("/analyze/<origin>/<path:path>", methods=["GET"])
+  def analyze_file(self, origin, path):
+    """Add a file to the analysis queue."""
+    queue_entry = self._file_manager._analysis_queue_entry(origin, path)
     if queue_entry is None:
-      return ""
-    temp_queue = GeniusAnalysisQueue(finished_callback, {})
-    temp_queue.enqueue(queue_entry)
-    return ""
+      return
+    results = self._file_manager.analyse(origin, path)
+    return
 
   ##~~ StartupPlugin API
 

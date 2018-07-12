@@ -67,11 +67,12 @@ $(function() {
     }
 
     self.analyzeCurrentFile = function () {
-      console.log(self.selectedGcode());
-      let model = self.listHelper.getItem(function(item) { return item["hash"] == self.selectedGcode() });
-      console.log(model);
-      OctoPrintClient.get("plugins/PrintTimeGenius/analyze")
-      return model;
+      let item = self.selectedGcode();
+      console.log(item);
+      let gcode = item["origin"] + "/" + item["path"];
+      url = OctoPrint.getBlueprintUrl("PrintTimeGenius") + "analyze/" + gcode;
+      let results = OctoPrint.get(url)
+      console.log(results);
     }
 
     self.onBeforeBinding = function() {
