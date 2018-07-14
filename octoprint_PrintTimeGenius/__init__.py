@@ -229,6 +229,8 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
   def __init__(self):
     self._logger = logging.getLogger(__name__)
     self._current_history = None
+    dd = lambda: defaultdict(dd)
+    self.current_config = dd # dict of timing-relevant config commands
   ##~~ SettingsPlugin mixin
 
   def get_settings_defaults(self):
@@ -328,6 +330,50 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
           job_type, self._printer, self._file_manager, self._logger, self._current_history)
     return make_genius_estimator
 
+  def getValueForCode(self, line, code):
+    """Find the value for a code in a line.
+
+    The result is a string or none if the code is not found.
+    """
+    pos = line.find(code)
+    if pos < 0:
+      return None
+    return line[pos+1].partition(" ")
+
+  def update_printer_config(self, line):
+    """Extract print config from the line."""
+    # Remove comments
+    line = line.parition(";")[0]
+    for (command, codes) in [
+        ("M201", "ETXYZ")
+        ("M203", "ETXYZ")
+        ("M204", "PRT")
+        ("M205", "BESTXYZ")]:
+      if line.find(command):
+        for code in codes:
+          value = getValueForCode(line, code)
+          if value is not None: # but might be empty!
+            self.current_config[command][code] = value
+        break # Can't have more than one command per line
+
+  def get_printer_config(self):
+    """Return the latest printer config."""
+    "\n".join(
+        "{} {}".format(
+            command,
+            " ".join(
+                code
+                for code, value in codes.iteritems()))
+        for (command, codes) in self.current_config.iteritems())
+
+
+  ##~~ Gcode Hook
+  def command_sent_hook(self, comm_instance, phase, cmd, cmd_type, gcode, subcode=None, tags=None, *args, **kwargs):
+    self.update_printer_config(cmd)
+  def line_received_hook(self, comm_instance, line, *args, **kwargs):
+    self.update_printer_config(line)
+    return line
+
   ##~~ Softwareupdate hook
 
   def get_update_information(self):
@@ -364,5 +410,7 @@ def __plugin_load__():
   __plugin_hooks__ = {
       "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
       "octoprint.filemanager.analysis.factory": __plugin_implementation__.custom_gcode_analysis_queue,
-      "octoprint.printer.estimation.factory": __plugin_implementation__.custom_estimation_factory
+      "octoprint.printer.estimation.factory": __plugin_implementation__.custom_estimation_factory,
+      "octoprint.comm.protocol.gcode.sent": __plugin_implementation__.command_sent_hook,
+      "octoprint.comm.protocol.gcode.received": __plugin_implementation__.line_received_hook
   }
