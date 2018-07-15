@@ -14,6 +14,8 @@ import shlex
 import time
 import os
 import sys
+import types
+import pkg_resources
 
 def _interpolate(l, point):
   """Use the point value to interpolate a new value from the list.
@@ -307,7 +309,13 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     def new_add_file(destination, path, file_object, links=None, allow_overwrite=False, printer_profile=None, analysis=None, display=None):
       return self._file_manager.original_add_file(destination, path, file_object, links, allow_overwrite, printer_profile, None, display)
     self._file_manager.add_file = new_add_file
-
+    # Work around for broken rc2
+    if pkg_resources.parse_version(octoprint._version.get_versions()['version']) == pkg_resources.parse_version("1.3.9rc2"):
+      self._printer.old_on_comm = self._printer.on_comm_file_selected
+      def new_on_comm(self, *args, **kwargs):
+        self.old_on_comm(*args, **kwargs)
+        self._create_estimator()
+      self._printer.on_comm_file_selected = types.MethodType(new_on_comm, self._printer)
 
 
   ##~~ AssetPlugin mixin
