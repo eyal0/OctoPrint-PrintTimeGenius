@@ -43,11 +43,10 @@ def _interpolate(l, point):
 class GeniusEstimator():
   """Uses previous generated analysis to estimate print time remaining."""
 
-  def __init__(self, job_type, printer, file_manager, logger, current_history):
+  def __init__(self, job_type, printer, file_manager, logger):
     self._printer = printer
     self._file_manager = file_manager
     self._logger = logger
-    self._current_history = current_history # The history entry that we will eventually store
     self._current_progress_index = -1 # Points to the entry that we used for remaining time
     self._current_total_printTime = None # When we started using the current_progress
     self._called_genius_yet = False
@@ -86,11 +85,11 @@ class GeniusEstimator():
     if new_progress_index != self._current_progress_index:
       # We advanced to a new index, let's make new estimates.
       if (progress > metadata["analysis"]["firstFilament"] and
-          not "firstFilamentPrintTime" in self._current_history):
-        self._current_history["firstFilamentPrintTime"] = printTime
-      if (not "lastFilamentPrintTime" in self._current_history or
+          not "firstFilamentPrintTime" in self._printer._current_history):
+        self._printer._current_history["firstFilamentPrintTime"] = printTime
+      if (not "lastFilamentPrintTime" in self._printer._current_history or
           progress <= metadata["analysis"]["lastFilament"]):
-        self._current_history["lastFilamentPrintTime"] = printTime
+        self._printer._current_history["lastFilamentPrintTime"] = printTime
       interpolation = _interpolate(filepos_to_progress, progress)
       if not interpolation:
         return None
@@ -241,7 +240,6 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
                             octoprint.plugin.BlueprintPlugin):
   def __init__(self):
     self._logger = logging.getLogger(__name__)
-    self._current_history = None
   ##~~ SettingsPlugin mixin
 
   def get_settings_defaults(self):
@@ -276,14 +274,14 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       metadata = self._file_manager.get_metadata(payload["origin"], payload["path"])
       if not "analysis" in metadata or not "analysisPrintTime" in metadata["analysis"]:
         return
-      self._current_history["payload"] = payload
-      self._current_history["timestamp"] = time.time()
+      self._printer._current_history["payload"] = payload
+      self._printer._current_history["timestamp"] = time.time()
       for x in ("analysisPrintTime",
                 "analysisFirstFilamentPrintTime",
                 "analysisLastFilamentPrintTime"):
-        self._current_history[x] = metadata["analysis"][x]
-      print_history.append(self._current_history)
-      self._current_history = None
+        self._printer._current_history[x] = metadata["analysis"][x]
+      print_history.append(self._printer._current_history)
+      self._printer._current_history = {}
       print_history.sort(key=lambda x: x["timestamp"], reverse=True)
       MAX_HISTORY_ITEMS = 5
       del print_history[MAX_HISTORY_ITEMS:]
@@ -294,6 +292,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
   @octoprint.plugin.BlueprintPlugin.route("/analyse/<origin>/<path:path>", methods=["GET"])
   def analyze_file(self, origin, path):
     """Add a file to the analysis queue."""
+    self._logger.info("Analysis requested for {}:{}".format(origin, path))
     queue_entry = self._file_manager._analysis_queue_entry(origin, path)
     if queue_entry is None:
       return ""
@@ -320,14 +319,23 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       return self._file_manager.original_add_file(destination, path, file_object, links, allow_overwrite, printer_profile, None, display)
     self._file_manager.add_file = new_add_file
 
+    self._printer._current_history = {}
     # TODO: Remove the below after 1.3.9rc1 becomes more popular.
-    # Monkey patch _estimatePrintTimeLeft
     if not NEW_OCTOPRINT:
+      # Monkey patch the analyzer.
+      self._file_manager._analysis_queue = GeniusAnalysisQueue(self._file_manager._on_analysis_finished, self)
+      # Monkey patch _estimatePrintTimeLeft
       self._printer.original_estiamtePrintTimeLeft = self._printer._estimatePrintTimeLeft
       def new_estimatePrintTimeLeft(progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType):
-        return new_estimatePrintTimeLeft.genius_estimator.estimate(progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType)
-      new_estimatePrintTimeLeft.genius_estimator = GeniusEstimator(None, self._printer, self._file_manager, self._logger, self._current_history)
-      self._file_manager.add_file = new_add_file
+        return new_estimatePrintTimeLeft.genius_estimator.estimate(
+            progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType)
+      new_estimatePrintTimeLeft.genius_estimator = GeniusEstimator(None, self._printer, self._file_manager, self._logger)
+      # Need to clear the current history everytime we start a new file.
+      self._printer.original_on_comm_file_selected = self._printer.on_comm_file_selected
+      def new_on_comm_file_selected(full_path, size, sd):
+        self._printer._current_history = {}
+        return self._printer.original_on_comm_file_selected(full_path, size, sd)
+      self._printer.on_comm_file_selected = new_on_comm_file_selected
 
 
   ##~~ AssetPlugin mixin
@@ -347,9 +355,9 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
         finished_callback, self))
   def custom_estimation_factory(self, *args, **kwargs):
     def make_genius_estimator(job_type):
-      self._current_history = {}
+      self._printer._current_history = {}
       return GeniusEstimator(
-          job_type, self._printer, self._file_manager, self._logger, self._current_history)
+          job_type, self._printer, self._file_manager, self._logger)
     return make_genius_estimator
 
   ##~~ Softwareupdate hook
