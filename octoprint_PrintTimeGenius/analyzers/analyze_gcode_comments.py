@@ -5,6 +5,7 @@ import re
 import json
 import sys
 from collections import defaultdict
+import collections
 
 dd = lambda: defaultdict(dd)
 
@@ -49,7 +50,7 @@ ALL_GCODE_LINE_ANALYZERS.append(process_slic3r_filament)
 def process_slic3r_print_time(gcode_line):
   """Match a Slic3r PE print time estimate"""
   ret = dd()
-  m = re.match('\s*;\s*estimated printing time\s*=\s(.*)\s*', gcode_line)
+  m = re.match('\s*;\s*estimated printing time\s*=\s*(.*)\s*', gcode_line)
   if m:
     ret['estimatedPrintTime'] = process_time_text(m.group(1))
   return ret
@@ -88,8 +89,46 @@ def process_cura1504_print_time(gcode_line):
   return ret
 ALL_GCODE_LINE_ANALYZERS.append(process_slic3r_print_time)
 
+def process_simplify3d_print_time(gcode_line):
+  """Match Simplify3D time estimate"""
+  ret = dd()
+  m = re.match('\s*;\s*Build time\s*:\s*(.*)\s*', gcode_line)
+  if m:
+    ret['estimatedPrintTime'] = process_time_text(m.group(1))
+  return ret
+ALL_GCODE_LINE_ANALYZERS.append(process_simplify3d_print_time)
+
+def process_simplify3d_filament_length(gcode_line):
+  """Match Simplify3D filament length"""
+  ret = dd()
+  m = re.match('\s*;\s*Filament length\s*:\s*([0-9.]+)\s*mm\s*', gcode_line)
+  if m:
+    filament_millimeters_text = m.group(1)
+    ret['filament']['tool0']['length'] = float(filament_millimeters_text)
+  return ret
+ALL_GCODE_LINE_ANALYZERS.append(process_simplify3d_filament_length)
+
+def process_simplify3d_filament_volume(gcode_line):
+  """Match Simplify3D filament volume"""
+  ret = dd()
+  m = re.match('\s*;\s*Plastic volume\s*:\s*([0-9.]+)\s*mm\^3\s*', gcode_line)
+  if m:
+    filament_cubic_millimeters_text = m.group(1)
+    ret['filament']['tool0']['volume'] = float(filament_cubic_millimeters_text) / 1000
+  return ret
+ALL_GCODE_LINE_ANALYZERS.append(process_simplify3d_filament_volume)
+
 file_position = 0
 forward_progress = []
+def update(d, u):
+  """Do deep updates of dict."""
+  for k, v in u.iteritems():
+    if isinstance(v, collections.Mapping):
+      d[k] = update(d.get(k, dd()), v)
+    else:
+      d[k] = v
+  return d
+
 def get_analysis_from_gcode(machinecode_path):
   """Extracts the analysis data structure from the gocde.
 
@@ -107,7 +146,10 @@ def get_analysis_from_gcode(machinecode_path):
         continue # This saves a lot of time
 
       for gcode_analyzer in ALL_GCODE_LINE_ANALYZERS:
-        analysis.update(gcode_analyzer(gcode_line))
+        new_result = gcode_analyzer(gcode_line)
+        if new_result:
+          # update doesn't work as we'd like on defaultdict
+          analysis = update(analysis, new_result)
 
   # Convert forward_progress to reverse progress if we found it.
   if forward_progress:

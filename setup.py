@@ -14,7 +14,7 @@ plugin_package = "octoprint_PrintTimeGenius"
 plugin_name = "OctoPrint-PrintTimeGenius"
 
 # The plugin's version. Can be overwritten within OctoPrint's internal data via __plugin_version__ in the plugin module
-plugin_version = "1.0.1"
+plugin_version = "1.0.4"
 
 # The plugin's description. Can be overwritten within OctoPrint's internal data via __plugin_description__ in the plugin
 # module
@@ -33,7 +33,8 @@ plugin_url = "https://github.com/eyal0/OctoPrint-PrintTimeGenius"
 plugin_license = "AGPLv3"
 
 # Any additional requirements besides OctoPrint should be listed here
-plugin_requires = []
+# For now, require the working release, which is only 1.3.9rc1.
+plugin_requires = ["OctoPrint==1.3.9rc1"]
 
 ### --------------------------------------------------------------------------------------------------------------------
 ### More advanced options that you usually shouldn't have to touch follow after this point
