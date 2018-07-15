@@ -14,6 +14,7 @@ import shlex
 import time
 import os
 import sys
+from collections import defaultdict
 
 def _interpolate(l, point):
   """Use the point value to interpolate a new value from the list.
@@ -234,7 +235,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     self._logger = logging.getLogger(__name__)
     self._current_history = {}
     dd = lambda: defaultdict(dd)
-    self.current_config = dd # dict of timing-relevant config commands
+    self.current_config = dd() # dict of timing-relevant config commands
   ##~~ SettingsPlugin mixin
 
   def get_settings_defaults(self):
@@ -342,31 +343,36 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     pos = line.find(code)
     if pos < 0:
       return None
-    return line[pos+1].partition(" ")
+    ret = line[pos+1:].partition(" ")
+    return ret[0]
 
   def update_printer_config(self, line):
     """Extract print config from the line."""
     # Remove comments
-    line = line.parition(";")[0]
+    line = line.partition(";")[0]
+    line = line.upper()
     for (command, codes) in [
-        ("M201", "ETXYZ")
-        ("M203", "ETXYZ")
-        ("M204", "PRT")
-        ("M205", "BESTXYZ")]:
-      if line.find(command):
+        ("M201", "ETXYZ"),
+        ("M203", "ETXYZ"),
+        ("M204", "PRT"),
+        ("M205", "BESTXYZ"),
+        ("M220", "S"),
+        ("M221", "S")
+    ]:
+      if command in line:
         for code in codes:
-          value = getValueForCode(line, code)
+          value = self.getValueForCode(line, code)
           if value is not None: # but might be empty!
             self.current_config[command][code] = value
         break # Can't have more than one command per line
 
   def get_printer_config(self):
     """Return the latest printer config."""
-    "\n".join(
+    return "\n".join(
         "{} {}".format(
             command,
             " ".join(
-                code
+                "{}{}".format(code, value)
                 for code, value in codes.iteritems()))
         for (command, codes) in self.current_config.iteritems())
 
