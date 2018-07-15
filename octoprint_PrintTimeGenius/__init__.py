@@ -4,7 +4,13 @@ from __future__ import division
 
 import octoprint.plugin
 import octoprint.filemanager.storage
-from octoprint.printer.estimation import PrintTimeEstimator
+import pkg_resources
+if pkg_resources.parse_version(octoprint._version.get_versions()['version']) >= pkg_resources.parse_version("1.3.9rc1"):
+  NEW_OCTOPRINT = True
+else:
+  NEW_OCTOPRINT = False
+if NEW_OCTOPRINT:
+  from octoprint.printer.estimation import PrintTimeEstimator
 from octoprint.filemanager.analysis import GcodeAnalysisQueue
 import logging
 import bisect
@@ -34,19 +40,21 @@ def _interpolate(l, point):
   return [x[0]*(1-ratio) + x[1]*ratio
           for x in zip(l[left_index], l[right_index])]
 
-class GeniusEstimator(PrintTimeEstimator):
+class GeniusEstimator():
   """Uses previous generated analysis to estimate print time remaining."""
 
   def __init__(self, job_type, printer, file_manager, logger, current_history):
-    super(GeniusEstimator, self).__init__(job_type)
-    self._path = printer.get_current_job()["file"]["path"]
-    self._origin = printer.get_current_job()["file"]["origin"]
+    self._printer = printer
     self._file_manager = file_manager
     self._logger = logger
-    self._current_history = current_history
+    self._current_history = current_history # The history entry that we will eventually store
     self._current_progress_index = -1 # Points to the entry that we used for remaining time
     self._current_total_printTime = None # When we started using the current_progress
     self._called_genius_yet = False
+    if NEW_OCTOPRINT:
+      self.octoprint_print_time_estimator = PrintTimeEstimator(job_type)
+    else:
+      self.octoprint_print_time_estimator = None
 
   def _genius_estimate(self, progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType):
     """Return an estimate for the total print time remaining.
@@ -60,7 +68,9 @@ class GeniusEstimator(PrintTimeEstimator):
       # Pretend like the first call is always at progress 0
       progress = 0
       self._called_genius_yet = True
-    metadata = self._file_manager.get_metadata(self._origin, self._path)
+    path = self._printer.get_current_job()["file"]["path"]
+    origin = self._printer.get_current_job()["file"]["origin"]
+    metadata = self._file_manager.get_metadata(origin, path)
     if not metadata:
       return None
     if not "analysis" in metadata or not "progress" in metadata["analysis"]:
@@ -91,9 +101,12 @@ class GeniusEstimator(PrintTimeEstimator):
     return remaining_print_time, "genius"
 
   def estimate(self, progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType):
-    default_result = super(GeniusEstimator, self).estimate(
-        progress, printTime, cleanedPrintTime,
-        statisticalTotalPrintTime, statisticalTotalPrintTimeType)
+    if NEW_OCTOPRINT:
+      default_result = self.octoprint_print_time_estimator.estimate(
+          progress, printTime, cleanedPrintTime,
+          statisticalTotalPrintTime, statisticalTotalPrintTimeType)
+    else:
+      pass # TODO: Run the old estimation code
     result = default_result # This is the result that we will report.
     genius_result = default_result # Genius result defaults to the default_result
     try:
@@ -298,12 +311,23 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
 
     self._logger.addHandler(logging_handler)
     self._logger.propagate = False
+
     # TODO: Remove the below after https://github.com/foosel/OctoPrint/pull/2723 is merged.
+    # Monkey patch add_file to always analyze.
     self._file_manager.original_add_file = self._file_manager.add_file
     def new_add_file(destination, path, file_object, links=None, allow_overwrite=False, printer_profile=None, analysis=None, display=None):
+      # Call the original with analysis forced to None
       return self._file_manager.original_add_file(destination, path, file_object, links, allow_overwrite, printer_profile, None, display)
     self._file_manager.add_file = new_add_file
 
+    # TODO: Remove the below after 1.3.9rc1 becomes more popular.
+    # Monkey patch _estimatePrintTimeLeft
+    if not NEW_OCTOPRINT:
+      self._printer.original_estiamtePrintTimeLeft = self._printer._estimatePrintTimeLeft
+      def new_estimatePrintTimeLeft(progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType):
+        return new_estimatePrintTimeLeft.genius_estimator.estimate(progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType)
+      new_estimatePrintTimeLeft.genius_estimator = GeniusEstimator(None, self._printer, self._file_manager, self._logger, self._current_history)
+      self._file_manager.add_file = new_add_file
 
 
   ##~~ AssetPlugin mixin
