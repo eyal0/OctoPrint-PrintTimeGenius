@@ -91,25 +91,29 @@ class GeniusEstimator(PrintTimeEstimator):
     return remaining_print_time, "genius"
 
   def estimate(self, progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType):
-    default_result = super(GeniusEstimator, self).estimate(
-        progress, printTime, cleanedPrintTime,
-        statisticalTotalPrintTime, statisticalTotalPrintTimeType)
-    result = default_result # This is the result that we will report.
-    genius_result = default_result # Genius result defaults to the default_result
     try:
-      genius_result = self._genius_estimate(
+      default_result = super(GeniusEstimator, self).estimate(
           progress, printTime, cleanedPrintTime,
           statisticalTotalPrintTime, statisticalTotalPrintTimeType)
-      if genius_result:
-        result = genius_result # If genius worked, use it.
+      result = default_result # This is the result that we will report.
+      genius_result = default_result # Genius result defaults to the default_result
+      try:
+        genius_result = self._genius_estimate(
+            progress, printTime, cleanedPrintTime,
+            statisticalTotalPrintTime, statisticalTotalPrintTimeType)
+        if genius_result:
+          result = genius_result # If genius worked, use it.
+      except Exception as e:
+        self._logger.warning("Failed to estimate, ignoring.", exc_info=e)
+      if not default_result:
+        default_result = (0, 'genius')
+      if not genius_result:
+        genius_result = (0, 'genius')
+      self._logger.debug(", " + ", ".join(map(str, [printTime, default_result[0], default_result[1], genius_result[0], genius_result[1], progress])))
+      return result
     except Exception as e:
-      self._logger.warning("Failed to estimate, ignoring.", exc_info=e)
-    if not default_result:
-      default_result = (0, None)
-    if not genius_result:
-      genius_result = (0, None)
-    self._logger.debug(", " + ", ".join(map(str, [printTime, default_result[0], default_result[1], genius_result[0], genius_result[1], progress])))
-    return result
+      self._logger.error("Failed to estimate", exc_info=e)
+      return (0, 'genius')
 
 class GeniusAnalysisQueue(GcodeAnalysisQueue):
   """Generate an analysis to use for printing time remaining later."""
