@@ -228,7 +228,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
                             octoprint.plugin.BlueprintPlugin):
   def __init__(self):
     self._logger = logging.getLogger(__name__)
-    self._current_history = None
+    self._current_history = {}
   ##~~ SettingsPlugin mixin
 
   def get_settings_defaults(self):
@@ -270,7 +270,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
                 "analysisLastFilamentPrintTime"):
         self._current_history[x] = metadata["analysis"][x]
       print_history.append(self._current_history)
-      self._current_history = None
+      self._current_history = {}
       print_history.sort(key=lambda x: x["timestamp"], reverse=True)
       MAX_HISTORY_ITEMS = 5
       del print_history[MAX_HISTORY_ITEMS:]
