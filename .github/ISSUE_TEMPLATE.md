@@ -12,3 +12,5 @@ What did you try:
 What happenned:
 
 What did you expect to happen:
+
+If relevant, upload the PrintTimeGenius log and any problematic gcode files (you might need to rename them).
