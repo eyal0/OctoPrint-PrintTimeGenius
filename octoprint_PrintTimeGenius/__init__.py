@@ -195,8 +195,13 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
         logger.info("Disabled: {}".format(command))
         continue
       logger.info("Running: {}".format(command))
+      results_err = ""
       try:
-        results_text = subprocess.check_output(shlex.split(command))
+        popen = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        results_text, results_err = popen.communicate()
+        if popen.returncode != 0:
+          raise Exception(results_err)
+        logger.info("Subprocess output: {}".format(results_err))
         logger.info("Result: {}".format(results_text))
         new_results = json.loads(results_text)
         results.update(new_results)

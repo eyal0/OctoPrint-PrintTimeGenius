@@ -15,7 +15,18 @@ def main():
       os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])),
                    "{}.{}".format(binary_base_name, machine)),
       gcode]
-  output = subprocess.check_output(cmd)
+  print("Running: {}".format(" ".join(cmd)), file=sys.stderr)
+  if not os.path.isfile(cmd[0]):
+    print("Can't find: {}".format(cmd[0]), file=sys.stderr)
+    exit(2)
+  if not os.access(cmd[0], os.X_OK):
+    print("Not executable: {}".format(cmd[0]), file=sys.stderr)
+    exit(3)
+  try:
+    output = subprocess.check_output(cmd)
+  except Exception as e:
+    print(e, file=sys.stderr)
+    exit(1)
   progress = []
   result = {}
   first_filament = None
