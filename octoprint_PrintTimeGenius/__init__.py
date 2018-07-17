@@ -191,7 +191,7 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
     else:
       logger.info("Not running built-in analysis.")
     for analyzer in self._plugin._settings.get(["analyzers"]):
-      command = analyzer["command"].format(gcode=self._current.absolute_path)
+      command = analyzer["command"].format(gcode=self._current.absolute_path, mcodes=self._plugin.get_printer_config())
       if not analyzer["enabled"]:
         logger.info("Disabled: {}".format(command))
         continue
@@ -246,14 +246,16 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
   ##~~ SettingsPlugin mixin
 
   def get_settings_defaults(self):
-    built_in_analyzers = [["analyzers/analyze_gcode_comments.py"],
-                          ["analyzers/analyze_progress.py", "marlin-calc"]]
     current_path = os.path.dirname(os.path.realpath(__file__))
+    built_in_analyzers = [
+        '"{{python}}" "{analyzer}" "{{{{gcode}}}}"'.format(
+            analyzer=os.path.join(current_path, "analyzers/analyze_gcode_comments.py")),
+        '"{{python}}" "{analyzer}" "marlin-calc" "{{{{gcode}}}}" "{{{{mcodes}}}}"'.format(
+            analyzer=os.path.join(current_path, "analyzers/analyze_progress.py"))
+    ]
     return {
         "analyzers": [
-            {"command": '{python} {analyzer} "{{gcode}}"'.format(
-                python = sys.executable,
-                analyzer = " ".join([os.path.join(current_path, x[0])] + x[1:])),
+            {"command": x.format(python=sys.executable),
              "enabled": True}
             for x in built_in_analyzers],
         "exactDurations": True,

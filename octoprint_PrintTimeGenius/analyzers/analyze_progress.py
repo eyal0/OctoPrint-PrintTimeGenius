@@ -11,11 +11,16 @@ def main():
   binary_base_name = sys.argv[1]
   machine = platform.machine()
   gcode = sys.argv[2]
+  mcodes = None
+  if len(sys.argv) > 3:
+    mcodes = sys.argv[3]
   cmd = [
       os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])),
                    "{}.{}".format(binary_base_name, machine)),
       gcode]
-  print("Running: {}".format(" ".join(cmd)), file=sys.stderr)
+  if mcodes:
+    cmd += [mcodes]
+  print("Running: {}".format(" ".join('"{}"'.format(c) for c in cmd)), file=sys.stderr)
   if not os.path.isfile(cmd[0]):
     print("Can't find: {}".format(cmd[0]), file=sys.stderr)
     exit(2)
