@@ -6,6 +6,7 @@ import octoprint.plugin
 import octoprint.filemanager.storage
 from octoprint.printer.estimation import PrintTimeEstimator
 from octoprint.filemanager.analysis import GcodeAnalysisQueue
+from octoprint.filemanager.analysis import AnalysisAborted
 import logging
 import bisect
 import subprocess
@@ -184,7 +185,12 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
     results = None
     if self._plugin._settings.get(["enableOctoPrintAnalyzer"]):
       logger.info("Running built-in analysis.")
-      results = super(GeniusAnalysisQueue, self)._do_analysis(high_priority)
+      try:
+        results = super(GeniusAnalysisQueue, self)._do_analysis(high_priority)
+      except AnalysisAborted as e:
+        logger.info("Probably starting printing, aborting built-in analysis.",
+                    exc_info=e)
+        raise # Reraise it
       logger.info("Result: {}".format(results))
       self._finished_callback(self._current, results)
     else:
@@ -198,7 +204,13 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
       results_err = ""
       try:
         popen = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        results_text, results_err = popen.communicate()
+        while popen.poll() is None:
+          if self._aborted:
+            popen.terminate()
+            raise AnalysisAborted(reenqueue=self._reenqueue)
+          time.sleep(0.05)
+        results_text = popen.stdout.read()
+        results_err = popen.stderr.read()
         if popen.returncode != 0:
           raise Exception(results_err)
         logger.info("Subprocess output: {}".format(results_err))
@@ -207,6 +219,10 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
         results.update(new_results)
         logger.info("Merged result: {}".format(results))
         self._finished_callback(self._current, results)
+      except AnalysisAborted as e:
+        logger.info("Probably started printing, aborting: '{}'".format(command),
+                    exc_info=e)
+        raise # Reraise it
       except Exception as e:
         logger.warning("Failed to run '{}'".format(command), exc_info=e)
     # Before we potentially modify the result from analysis, save them.
