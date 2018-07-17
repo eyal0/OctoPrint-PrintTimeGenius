@@ -14,6 +14,8 @@ import shlex
 import time
 import os
 import sys
+import types
+import pkg_resources
 from collections import defaultdict
 
 def _interpolate(l, point):
@@ -194,8 +196,13 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
         logger.info("Disabled: {}".format(command))
         continue
       logger.info("Running: {}".format(command))
+      results_err = ""
       try:
-        results_text = subprocess.check_output(shlex.split(command))
+        popen = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        results_text, results_err = popen.communicate()
+        if popen.returncode != 0:
+          raise Exception(results_err)
+        logger.info("Subprocess output: {}".format(results_err))
         logger.info("Result: {}".format(results_text))
         new_results = json.loads(results_text)
         results.update(new_results)
@@ -310,7 +317,13 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     def new_add_file(destination, path, file_object, links=None, allow_overwrite=False, printer_profile=None, analysis=None, display=None):
       return self._file_manager.original_add_file(destination, path, file_object, links, allow_overwrite, printer_profile, None, display)
     self._file_manager.add_file = new_add_file
-
+    # Work around for broken rc2
+    if pkg_resources.parse_version(octoprint._version.get_versions()['version']) == pkg_resources.parse_version("1.3.9rc2"):
+      self._printer.old_on_comm = self._printer.on_comm_file_selected
+      def new_on_comm(self, *args, **kwargs):
+        self.old_on_comm(*args, **kwargs)
+        self._create_estimator()
+      self._printer.on_comm_file_selected = types.MethodType(new_on_comm, self._printer)
 
 
   ##~~ AssetPlugin mixin
