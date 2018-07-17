@@ -396,7 +396,10 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
   def command_sent_hook(self, comm_instance, phase, cmd, cmd_type, gcode, subcode=None, tags=None, *args, **kwargs):
     self.update_printer_config(cmd)
   def line_received_hook(self, comm_instance, line, *args, **kwargs):
-    self.update_printer_config(line)
+    strip_echo = line
+    if strip_echo.starts_with("echo:"):
+      strip_echo = strip_echo[len("echo:"):]
+    self.update_printer_config(strip_echo)
     return line
 
   ##~~ Softwareupdate hook
