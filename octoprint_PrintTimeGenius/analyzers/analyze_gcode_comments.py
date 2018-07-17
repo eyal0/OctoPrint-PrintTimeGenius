@@ -142,7 +142,7 @@ def get_analysis_from_gcode(machinecode_path):
     for gcode_line in gcode_lines:
       global file_position
       file_position += len(gcode_line)
-      if not gcode_line[0].startswith(";"):
+      if not gcode_line.startswith(";"):
         continue # This saves a lot of time
 
       for gcode_analyzer in ALL_GCODE_LINE_ANALYZERS:
