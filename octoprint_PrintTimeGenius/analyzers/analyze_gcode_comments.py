@@ -98,25 +98,27 @@ def process_simplify3d_print_time(gcode_line):
   return ret
 ALL_GCODE_LINE_ANALYZERS.append(process_simplify3d_print_time)
 
-def process_simplify3d_filament_length(gcode_line):
-  """Match Simplify3D filament length"""
-  ret = dd()
-  m = re.match('\s*;\s*Filament length\s*:\s*([0-9.]+)\s*mm\s*', gcode_line)
-  if m:
-    filament_millimeters_text = m.group(1)
-    ret['filament']['tool0']['length'] = float(filament_millimeters_text)
-  return ret
-ALL_GCODE_LINE_ANALYZERS.append(process_simplify3d_filament_length)
+# Removed because Simplify3D isn't able to calculate multiple filament correctly.
+#def process_simplify3d_filament_length(gcode_line):
+#  """Match Simplify3D filament length"""
+#  ret = dd()
+#  m = re.match('\s*;\s*Filament length\s*:\s*([0-9.]+)\s*mm\s*', gcode_line)
+#  if m:
+#    filament_millimeters_text = m.group(1)
+#    ret['filament']['tool0']['length'] = float(filament_millimeters_text)
+#  return ret
+#ALL_GCODE_LINE_ANALYZERS.append(process_simplify3d_filament_length)
 
-def process_simplify3d_filament_volume(gcode_line):
-  """Match Simplify3D filament volume"""
-  ret = dd()
-  m = re.match('\s*;\s*Plastic volume\s*:\s*([0-9.]+)\s*mm\^3\s*', gcode_line)
-  if m:
-    filament_cubic_millimeters_text = m.group(1)
-    ret['filament']['tool0']['volume'] = float(filament_cubic_millimeters_text) / 1000
-  return ret
-ALL_GCODE_LINE_ANALYZERS.append(process_simplify3d_filament_volume)
+# Removed because Simplify3D isn't able to calculate multiple filament correctly.
+#def process_simplify3d_filament_volume(gcode_line):
+#  """Match Simplify3D filament volume"""
+#  ret = dd()
+#  m = re.match('\s*;\s*Plastic volume\s*:\s*([0-9.]+)\s*mm\^3\s*', gcode_line)
+#  if m:
+#    filament_cubic_millimeters_text = m.group(1)
+#    ret['filament']['tool0']['volume'] = float(filament_cubic_millimeters_text) / 1000
+#  return ret
+#ALL_GCODE_LINE_ANALYZERS.append(process_simplify3d_filament_volume)
 
 file_position = 0
 forward_progress = []
