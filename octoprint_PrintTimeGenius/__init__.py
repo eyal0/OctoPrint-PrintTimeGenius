@@ -101,6 +101,9 @@ class GeniusEstimator(PrintTimeEstimator):
           statisticalTotalPrintTime, statisticalTotalPrintTimeType)
       result = default_result # This is the result that we will report.
       genius_result = default_result # Genius result defaults to the default_result
+      if not self._called_genius_yet:
+        self._logger.debug("*** Starting CSV output for {}:{} ***".format(self._origin, self._path))
+        self._logger.debug(", " + ", ".join(map(str, ["Print Time", "Built-in Result", "Built-in Result Type", "Genius Result", "Genius Result Type", "Progress of file read"])))
       try:
         genius_result = self._genius_estimate(
             progress, printTime, cleanedPrintTime,
