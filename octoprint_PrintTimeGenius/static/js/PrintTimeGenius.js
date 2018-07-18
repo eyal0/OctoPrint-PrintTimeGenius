@@ -109,6 +109,12 @@ $(function() {
     self.removeAnalyzer = function(analyzer) {
       self.analyzers.remove(analyzer);
     }
+    self.resetAnalyzersToDefault = function() {
+      OctoPrint.get(OctoPrint.getBlueprintUrl("PrintTimeGenius") + "get_settings_defaults").done(
+          function (defaults) {
+            self.analyzers(defaults['analyzers']);
+          });
+    }
   }
 
   /* view model class, parameters for constructor, container to bind to

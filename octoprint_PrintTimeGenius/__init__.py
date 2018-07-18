@@ -282,6 +282,10 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
         "print_history": []
     }
 
+  @octoprint.plugin.BlueprintPlugin.route("/get_settings_defaults", methods=["GET"])
+  def get_settings_defaults_as_string(self):
+    return json.dumps(self.get_settings_defaults())
+
   ##~~ EventHandlerPlugin API
   def on_event(self, event, payload):
     """Record how long print's actually took when they succeed.

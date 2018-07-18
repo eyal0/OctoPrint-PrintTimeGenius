@@ -6,6 +6,7 @@
     <label class="checkbox"><input type="checkbox" data-bind="checked: enableOctoPrintAnalyzer">{{ _('Enbale OctoPrint\'s built-in analyzer.') }}</label>
     -->
     <h3>{{ _('Analyzers') }}</h3>
+    <button class="btn" data-bind="event: { click: resetAnalyzersToDefault }">{{ _('Reset analyzers to default') }}</button>
     <div class="row-fluid">
       <h4 class="span10">
         <div class="span11">{{ _('Command') }}</div>
