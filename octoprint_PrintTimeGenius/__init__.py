@@ -64,7 +64,11 @@ class GeniusEstimator(PrintTimeEstimator):
       # Pretend like the first call is always at progress 0
       progress = 0
       self._called_genius_yet = True
-    metadata = self._file_manager.get_metadata(self._origin, self._path)
+    try:
+      metadata = self._file_manager.get_metadata(self._origin, self._path)
+    except octoprint.filemanager.NoSuchStorage as e:
+      #The metadata is not found or maybe not yet written.
+      return None
     if not metadata:
       return None
     if not "analysis" in metadata or not "progress" in metadata["analysis"]:
