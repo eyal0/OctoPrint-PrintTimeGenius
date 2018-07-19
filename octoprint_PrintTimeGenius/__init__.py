@@ -397,7 +397,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
         ("M201", "ETXYZ"),
         ("M203", "ETXYZ"),
         ("M204", "PRT"),
-        ("M205", "BESTXYZ"),
+        ("M205", "BESTXYZJ"),
         ("M220", "S"),
         ("M221", "S")
     ]:
