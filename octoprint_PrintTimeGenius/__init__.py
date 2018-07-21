@@ -265,7 +265,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     self._logger = logging.getLogger(__name__)
     self._current_history = {}
     dd = lambda: defaultdict(dd)
-    self.current_config = dd() # dict of timing-relevant config commands
+    self._current_config = dd() # dict of timing-relevant config commands
   ##~~ SettingsPlugin mixin
 
   def get_settings_defaults(self):
@@ -283,7 +283,8 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
             for x in built_in_analyzers],
         "exactDurations": True,
         "enableOctoPrintAnalyzer": True,
-        "print_history": []
+        "print_history": [],
+        "printer_config": {}
     }
 
   @octoprint.plugin.BlueprintPlugin.route("/get_settings_defaults", methods=["GET"])
@@ -394,19 +395,26 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     line = line.partition(";")[0]
     line = line.upper()
     for (command, codes) in [
+        ("M92", "XYZE"),
         ("M201", "ETXYZ"),
         ("M203", "ETXYZ"),
-        ("M204", "PRT"),
+        ("M204", "SPRT"),
         ("M205", "BESTXYZJ"),
         ("M220", "S"),
-        ("M221", "S")
+        ("M221", "ST")
     ]:
       if command in line:
         for code in codes:
           value = self.getValueForCode(line, code)
           if value is not None: # but might be empty!
-            self.current_config[command][code] = value
+            self._current_config[command][code] = value
         break # Can't have more than one command per line
+    old_config = self._settings.get(["printer_config"])
+    if json.dumps(old_config) != json.dumps(self._current_config):
+      new_config = json.loads(json.dumps(self._current_config))
+      self._settings.set(["printer_config"], new_config)
+      # This might also save settings that we didn't intend to save...
+      self._settings.save()
 
   def get_printer_config(self):
     """Return the latest printer config."""
@@ -416,7 +424,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
             " ".join(
                 "{}{}".format(code, value)
                 for code, value in codes.iteritems()))
-        for (command, codes) in self.current_config.iteritems())
+        for (command, codes) in self._current_config.iteritems())
 
 
   ##~~ Gcode Hook
