@@ -354,6 +354,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
         self.old_on_comm(*args, **kwargs)
         self._create_estimator()
       self._printer.on_comm_file_selected = types.MethodType(new_on_comm, self._printer)
+    self._current_config.update(self._settings.get(["printer_config"]))
 
 
   ##~~ AssetPlugin mixin
