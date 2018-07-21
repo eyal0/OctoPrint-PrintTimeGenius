@@ -1,0 +1,4 @@
+[submodule "submodules/Marlin"]
+	path = submodules/Marlin
+	url = git@github.com:eyal0/Marlin.git
+	branch = estimate-bugfix-2.0.x
