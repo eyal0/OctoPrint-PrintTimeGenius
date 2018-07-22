@@ -174,7 +174,7 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
       for p in analysis["progress"]:
         if p[0] < analysis["firstFilament"]:
           continue # Ignore anything before the first filament.
-        if p[0] >= analysis["lastFilament"]:
+        if p[0] > analysis["lastFilament"]:
           break # Don't add estimates from the cooldown
         remaining_time = p[1] # Starting value.
         remaining_time -= last_filament_remaining_time # Remove expected cooldown.
