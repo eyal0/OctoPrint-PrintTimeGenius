@@ -259,6 +259,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
                             octoprint.plugin.AssetPlugin,
                             octoprint.plugin.TemplatePlugin,
                             octoprint.plugin.StartupPlugin,
+                            octoprint.plugin.ShutdownPlugin,
                             octoprint.plugin.EventHandlerPlugin,
                             octoprint.plugin.BlueprintPlugin):
   def __init__(self):
@@ -319,7 +320,6 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       MAX_HISTORY_ITEMS = 5
       del print_history[MAX_HISTORY_ITEMS:]
       self._settings.set(["print_history"], print_history)
-      self._settings.save() # This might also save settings that we didn't intend to save...
 
   @octoprint.plugin.BlueprintPlugin.route("/analyze/<origin>/<path:path>", methods=["GET"])
   @octoprint.plugin.BlueprintPlugin.route("/analyse/<origin>/<path:path>", methods=["GET"])
@@ -356,6 +356,10 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       self._printer.on_comm_file_selected = types.MethodType(new_on_comm, self._printer)
     self._current_config.update(self._settings.get(["printer_config"]))
 
+  ##~~ ShutdownPlugin API
+
+  def on_shutdown(self):
+    self._settings.save() # This might also save settings that we didn't intend to save...
 
   ##~~ AssetPlugin mixin
 
@@ -414,8 +418,6 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     if json.dumps(old_config) != json.dumps(self._current_config):
       new_config = json.loads(json.dumps(self._current_config))
       self._settings.set(["printer_config"], new_config)
-      # This might also save settings that we didn't intend to save...
-      self._settings.save()
 
   def get_printer_config(self):
     """Return the latest printer config."""
