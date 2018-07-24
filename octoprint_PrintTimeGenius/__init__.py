@@ -191,11 +191,11 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
 
   def _do_analysis(self, high_priority=False):
     logger = self._plugin._logger
-    results = None
+    results = {}
     if self._plugin._settings.get(["enableOctoPrintAnalyzer"]):
       logger.info("Running built-in analysis.")
       try:
-        results = super(GeniusAnalysisQueue, self)._do_analysis(high_priority)
+        results.update(super(GeniusAnalysisQueue, self)._do_analysis(high_priority))
       except AnalysisAborted as e:
         logger.info("Probably starting printing, aborting built-in analysis.",
                     exc_info=e)
