@@ -19,6 +19,7 @@ import types
 import pkg_resources
 from collections import defaultdict
 from .printer_config import PrinterConfig
+import psutil
 
 def _interpolate(l, point):
   """Use the point value to interpolate a new value from the list.
@@ -213,6 +214,10 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
       results_err = ""
       try:
         popen = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if "IDLE_PRIORITY_CLASS" in dir(psutil):
+          psutil.Process(popen.pid).nice(psutil.IDLE_PRIORITY_CLASS)
+        else:
+          psutil.Process(popen.pid).nice(psutil.IDLE_PRIORITY_CLASS)
         while popen.poll() is None:
           if self._aborted:
             popen.terminate()
