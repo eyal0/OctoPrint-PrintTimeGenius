@@ -284,7 +284,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
              "enabled": True}
             for x in built_in_analyzers],
         "exactDurations": True,
-        "enableOctoPrintAnalyzer": True,
+        "enableOctoPrintAnalyzer": False,
         "print_history": [],
         "printer_config": []
     }
