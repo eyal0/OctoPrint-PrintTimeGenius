@@ -18,6 +18,7 @@ import sys
 import types
 import pkg_resources
 from collections import defaultdict
+from .printer_config import PrinterConfig
 
 def _interpolate(l, point):
   """Use the point value to interpolate a new value from the list.
@@ -190,11 +191,11 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
 
   def _do_analysis(self, high_priority=False):
     logger = self._plugin._logger
-    results = None
+    results = {}
     if self._plugin._settings.get(["enableOctoPrintAnalyzer"]):
       logger.info("Running built-in analysis.")
       try:
-        results = super(GeniusAnalysisQueue, self)._do_analysis(high_priority)
+        results.update(super(GeniusAnalysisQueue, self)._do_analysis(high_priority))
       except AnalysisAborted as e:
         logger.info("Probably starting printing, aborting built-in analysis.",
                     exc_info=e)
@@ -266,7 +267,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     self._logger = logging.getLogger(__name__)
     self._current_history = {}
     dd = lambda: defaultdict(dd)
-    self._current_config = dd() # dict of timing-relevant config commands
+    self._current_config = PrinterConfig() # dict of timing-relevant config commands
   ##~~ SettingsPlugin mixin
 
   def get_settings_defaults(self):
@@ -283,9 +284,9 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
              "enabled": True}
             for x in built_in_analyzers],
         "exactDurations": True,
-        "enableOctoPrintAnalyzer": True,
+        "enableOctoPrintAnalyzer": False,
         "print_history": [],
-        "printer_config": {}
+        "printer_config": []
     }
 
   @octoprint.plugin.BlueprintPlugin.route("/get_settings_defaults", methods=["GET"])
@@ -354,7 +355,8 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
         self.old_on_comm(*args, **kwargs)
         self._create_estimator()
       self._printer.on_comm_file_selected = types.MethodType(new_on_comm, self._printer)
-    self._current_config.update(self._settings.get(["printer_config"]))
+    for line in self._settings.get(["printer_config"]):
+      self._current_config += line
 
   ##~~ ShutdownPlugin API
 
@@ -396,39 +398,15 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
 
   def update_printer_config(self, line):
     """Extract print config from the line."""
-    # Remove comments
-    line = line.partition(";")[0]
-    line = line.upper()
-    for (command, codes) in [
-        ("M92", "XYZE"),
-        ("M201", "ETXYZ"),
-        ("M203", "ETXYZ"),
-        ("M204", "SPRT"),
-        ("M205", "BESTXYZJ"),
-        ("M220", "S"),
-        ("M221", "ST")
-    ]:
-      if command in line:
-        for code in codes:
-          value = self.getValueForCode(line, code)
-          if value is not None: # but might be empty!
-            self._current_config[command][code] = value
-        break # Can't have more than one command per line
-    old_config = self._settings.get(["printer_config"])
-    if json.dumps(old_config) != json.dumps(self._current_config):
-      new_config = json.loads(json.dumps(self._current_config))
-      self._settings.set(["printer_config"], new_config)
+    self._current_config += line
+    new_config_as_list = self._current_config.as_list()
+    if new_config_as_list != self._settings.get(["printer_config"]):
+      self._logger.debug("New printer config: {}".format(str(self._current_config)))
+      self._settings.set(["printer_config"], new_config_as_list)
 
   def get_printer_config(self):
     """Return the latest printer config."""
-    return "\n".join(
-        "{} {}".format(
-            command,
-            " ".join(
-                "{}{}".format(code, value)
-                for code, value in codes.iteritems()))
-        for (command, codes) in self._current_config.iteritems())
-
+    return str(self._current_config)
 
   ##~~ Gcode Hook
   def command_sent_hook(self, comm_instance, phase, cmd, cmd_type, gcode, subcode=None, tags=None, *args, **kwargs):
