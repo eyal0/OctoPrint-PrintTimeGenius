@@ -151,6 +151,15 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
       print_history = self._plugin._settings.get(["print_history"])
       if not print_history:
         return
+      print_history = [ph for ph in print_history
+                       if (all(x in ph for x in ("firstFilamentPrintTime",
+                                                  "lastFilamentPrintTime",
+                                                  "payload",
+                                                  "analysisLastFilamentPrintTime",
+                                                  "analysisFirstFilamentPrintTime")) and
+                            "time" in ph["payload"])]
+      if not print_history:
+        return
       # How long did it take to heat up on previous prints?
       logging.info("Gathering compensation data...")
       heat_up_times = [ph["firstFilamentPrintTime"]
@@ -265,6 +274,7 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
       logger.info("Compensated result: {}".format(results))
     except Exception as e:
       logger.warning("Failed to compensate", exc_info=e)
+    results["compensatedPrintTime"] = results["estimatedPrintTime"]
     return results
 
 class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
@@ -325,14 +335,17 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       self._current_history["timestamp"] = time.time()
       for x in ("analysisPrintTime",
                 "analysisFirstFilamentPrintTime",
-                "analysisLastFilamentPrintTime"):
-        self._current_history[x] = metadata["analysis"][x]
+                "analysisLastFilamentPrintTime",
+                "compensatedPrintTime"):
+        if x in metadata["analysis"]:
+          self._current_history[x] = metadata["analysis"][x]
       print_history.append(self._current_history)
       self._current_history = {}
       print_history.sort(key=lambda x: x["timestamp"], reverse=True)
       MAX_HISTORY_ITEMS = 5
       del print_history[MAX_HISTORY_ITEMS:]
       self._settings.set(["print_history"], print_history)
+      self._settings.save()
 
   @octoprint.plugin.BlueprintPlugin.route("/analyze/<origin>/<path:path>", methods=["GET"]) # Different spellings
   @octoprint.plugin.BlueprintPlugin.route("/analyse/<origin>/<path:path>", methods=["GET"])

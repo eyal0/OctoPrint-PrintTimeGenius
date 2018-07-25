@@ -72,29 +72,52 @@
           <a href="downloads/logs/plugin_PrintTimeGenius_engine.log">Download the log</a>, remove unnecessary lines, and import to a spreadsheet.
         </p>
         <h3>Compensation values</h3>
-        <table style="border: 2px solid black;">
+        <table class="print-time-genius-table" style="border: 2px solid black;">
           <thead style="border: 1px solid black;">
             <tr>
-              <th colspan=3>Actual</th>
-              <th colspan=3>Predicted</th>
+              <th style="border-left: 1px black solid; border-right: 1px black solid;" colspan=4>Actual</th>
+              <th style="border-left: 1px black solid; border-right: 1px black solid;" colspan=3>Predicted</th>
+              <th style="border-left: 1px black solid; border-right: 1px black solid;" colspan=1>Compensated</th>
             </tr>
             <tr>
-              <th>Heating</th>
+              <th style="border-left: 1px black solid;">Heating</th>
               <th>Extruding</th>
               <th>Cooling</th>
-              <th>Heating</th>
+              <th style="border-right: 1px black solid;">Total</th>
+              <th style="border-left: 1px black solid;">Heating</th>
               <th>Extruding</th>
-              <th>Cooling</th>
+              <th style="border-right: 1px black solid;">Cooling</th>
+              <th style="border-left: 1px black solid; border-right: 1px black solid;">Total</th>
             </tr>
           </thead>
           <tbody data-bind="foreach: print_history">
             <tr>
-              <td data-bind="text: firstFilamentPrintTime().toFixed(1)"></td>
-              <td data-bind="text: (lastFilamentPrintTime()-firstFilamentPrintTime()).toFixed(1)"></td>
-              <td data-bind="text: (payload.time()-lastFilamentPrintTime()).toFixed(1)"></td>
-              <td data-bind="text: analysisFirstFilamentPrintTime().toFixed(1)"></td>
-              <td data-bind="text: (analysisLastFilamentPrintTime()-analysisFirstFilamentPrintTime()).toFixed(1)"></td>
-              <td data-bind="text: (analysisPrintTime()-analysisLastFilamentPrintTime()).toFixed(1)"></td>
+              <td style="border-left: 1px black solid;" data-bind="text:
+                             _.has($data, 'firstFilamentPrintTime') ?
+                             firstFilamentPrintTime().toFixed(1) : ''"></td>
+              <td data-bind="text:
+                             _.has($data, 'lastFilamentPrintTime') && _.has($data, 'firstFilamentPrintTime') ?
+                             (lastFilamentPrintTime()-firstFilamentPrintTime()).toFixed(1) : ''"></td>
+              <td data-bind="text:
+                             _.has($data, 'payload.time') && _.has($data, 'lastFilamentPrintTime') ?
+                             (payload.time()-lastFilamentPrintTime()).toFixed(1) : ''"></td>
+              <td style="border-right: 1px black solid; font-weight: bold"
+                  data-bind="text:
+                             _.has($data, 'payload.time') ?
+                             payload.time().toFixed(1) : ''"></td>
+              <td style="border-left: 1px black solid;" data-bind="text:
+                             _.has($data, 'analysisFirstFilamentPrintTime') ?
+                             analysisFirstFilamentPrintTime().toFixed(1) : ''"></td>
+              <td data-bind="text:
+                             _.has($data, 'analysisLastFilamentPrintTime') && _.has($data, 'analysisFirstFilamentPrintTime') ?
+                             (analysisLastFilamentPrintTime()-analysisFirstFilamentPrintTime()).toFixed(1) : ''"></td>
+              <td style="border-right: 1px black solid;" data-bind="text:
+                             _.has($data, 'analysisPrintTime') && _.has($data, 'analysisLastFilamentPrintTime') ?
+                             (analysisPrintTime()-analysisLastFilamentPrintTime()).toFixed(1) : ''"></td>
+              <td style="border-left: 1px black solid; border-right: 1px black solid; font-weight: bold"
+                  data-bind="text:
+                             _.has($data, 'compensatedPrintTime') ?
+                             compensatedPrintTime().toFixed(1) : ''"></td>
             </tr>
           </tbody>
         </table>

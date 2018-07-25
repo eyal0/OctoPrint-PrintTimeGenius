@@ -1,3 +1,5 @@
 .print-time-genius { visibility: hidden}
 .print-time-genius:before { color: gold; content: "★"; visibility: visible; position: absolute;}
 .print-time-genius-after:after { color: gold; content: "★"; visibility: visible; position: absolute;}
+.print-time-genius-table td,th { padding-left: 7px; padding-right: 7px; }
+.print-time-genius-table td { text-align: right; }
