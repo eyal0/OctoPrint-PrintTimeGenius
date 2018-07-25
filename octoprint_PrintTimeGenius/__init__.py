@@ -273,16 +273,16 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
   def get_settings_defaults(self):
     current_path = os.path.dirname(os.path.realpath(__file__))
     built_in_analyzers = [
-        '"{{python}}" "{analyzer}" "{{{{gcode}}}}"'.format(
-            analyzer=os.path.join(current_path, "analyzers/analyze_gcode_comments.py")),
-        '"{{python}}" "{analyzer}" "marlin-calc" "{{{{gcode}}}}" "{{{{mcodes}}}}"'.format(
-            analyzer=os.path.join(current_path, "analyzers/analyze_progress.py"))
+        ('"{{python}}" "{analyzer}" "{{{{gcode}}}}"'.format(
+            analyzer=os.path.join(current_path, "analyzers/analyze_gcode_comments.py")), False),
+        ('"{{python}}" "{analyzer}" "marlin-calc" "{{{{gcode}}}}" "{{{{mcodes}}}}"'.format(
+            analyzer=os.path.join(current_path, "analyzers/analyze_progress.py")), True)
     ]
     return {
         "analyzers": [
-            {"command": x.format(python=sys.executable),
-             "enabled": True}
-            for x in built_in_analyzers],
+            {"command": command.format(python=sys.executable),
+             "enabled": enabled}
+            for (command, enabled) in built_in_analyzers],
         "exactDurations": True,
         "enableOctoPrintAnalyzer": False,
         "print_history": [],
