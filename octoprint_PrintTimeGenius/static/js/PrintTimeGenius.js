@@ -98,7 +98,6 @@ $(function() {
       });
       // Force an update because this is called after the format function has already run.
       self.exactDurations.valueHasMutated();
-      self.getAnalysisStatus();
       self.originalGetSuccessClass = self.filesViewModel.getSuccessClass;
       self.filesViewModel.getSuccessClass = function(data) {
         let additional_css = "";
@@ -122,9 +121,6 @@ $(function() {
           function (defaults) {
             self.analyzers(defaults['analyzers']);
           });
-    }
-    self.getAnalysisStatus = function() {
-      OctoPrint.get(OctoPrint.getBlueprintUrl("PrintTimeGenius") + "get_analysis_status");
     }
   }
 
