@@ -4,7 +4,8 @@
     <label class="checkbox"><input type="checkbox" data-bind="checked: exactDurations">{{ _('Display precise durations instead of fuzzy ones.') }}</label>
     <label class="checkbox"><input type="checkbox" data-bind="checked: enableOctoPrintAnalyzer">{{ _('Enbale OctoPrint\'s built-in analyzer.  (Slow and unnecessary.)') }}</label>
     <h3>{{ _('Analyzers') }}</h3>
-    <button class="btn" data-bind="event: { click: resetAnalyzersToDefault }">{{ _('Reset analyzers to default') }}</button>
+    <button class="btn" title="{{ _('The default analyzers are the suggested settings for all users') }}"
+            data-bind="event: { click: resetAnalyzersToDefault }">{{ _('Reset analyzers to default') }}</button>
     <div class="row-fluid">
       <h4 class="span10">
         <div class="span11">{{ _('Command') }}</div>
@@ -17,13 +18,13 @@
           <input type="checkbox" style="margin-left: 20px" data-bind="checked: enabled">
         </div>
         <div class="span2">
-          <a title="Remove profile" class="btn btn-danger" data-bind="click: $parent.removeAnalyzer"><i class="fa fa-trash-o"></i></a>
+          <a title="Remove analyzer" class="btn btn-danger" data-bind="click: $parent.removeAnalyzer"><i class="fa fa-trash-o"></i></a>
         </div>
       </div>
     </div>
     <div class="row-fluid">
       <div class="offset10 span2" style="margin-top: 5px">
-        <a title="Add Analyzer" class="btn btn-primary" data-bind="click: addAnalyzer"><i class="fa fa-plus"></i></a>
+        <a title="Add analyzer" class="btn btn-primary" data-bind="click: addAnalyzer"><i class="fa fa-plus"></i></a>
       </div>
     </div>
     <h3>{{ _('Analyze') }}</h3>
