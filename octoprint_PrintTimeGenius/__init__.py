@@ -217,7 +217,7 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
         if "IDLE_PRIORITY_CLASS" in dir(psutil):
           psutil.Process(popen.pid).nice(psutil.IDLE_PRIORITY_CLASS)
         else:
-          psutil.Process(popen.pid).nice(psutil.IDLE_PRIORITY_CLASS)
+          psutil.Process(popen.pid).nice(19)
         while popen.poll() is None:
           if self._aborted:
             popen.terminate()
