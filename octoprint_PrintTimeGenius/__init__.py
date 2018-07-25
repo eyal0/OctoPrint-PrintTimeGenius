@@ -334,7 +334,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       del print_history[MAX_HISTORY_ITEMS:]
       self._settings.set(["print_history"], print_history)
 
-  @octoprint.plugin.BlueprintPlugin.route("/analyze/<origin>/<path:path>", methods=["GET"])
+  @octoprint.plugin.BlueprintPlugin.route("/analyze/<origin>/<path:path>", methods=["GET"]) # Different spellings
   @octoprint.plugin.BlueprintPlugin.route("/analyse/<origin>/<path:path>", methods=["GET"])
   def analyze_file(self, origin, path):
     """Add a file to the analysis queue."""

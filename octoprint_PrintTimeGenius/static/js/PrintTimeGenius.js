@@ -11,8 +11,6 @@ $(function() {
     self.settingsViewModel = parameters[0];
     self.printerStateViewModel = parameters[1];
     self.filesViewModel = parameters[2];
-    self.listHelper = self.filesViewModel.listHelper;
-    self.FileList = ko.observableArray();
     self.selectedGcode = ko.observable();
 
     // Overwrite the printTimeLeftOriginString function
@@ -49,22 +47,22 @@ $(function() {
     });
     self.printerStateViewModel.printTimeLeftOrigin.valueHasMutated();
 
-    self.getAllGcodeFiles = function(items = self.listHelper.allItems) {
+    self.recurseFiles = function(items) {
       let results = [];
       for (let item of items) {
         if (item["type"] == "machinecode") {
           results.push(item);
         }
         if ("children" in item) {
-          results = results.concat(self.getAllGcodeFiles(item.children));
+          results = results.concat(self.recurseFiles(item.children));
         }
       }
       return results;
     }
 
-    self.updateFileList = function () {
-      self.FileList(self.getAllGcodeFiles());
-    }
+    self.FileList = ko.pureComputed(function() {
+      return self.recurseFiles(self.filesViewModel.allItems());
+    });
 
     self.analyzeCurrentFile = function () {
       let item = self.selectedGcode();
@@ -101,7 +99,15 @@ $(function() {
       });
       // Force an update because this is called after the format function has already run.
       self.exactDurations.valueHasMutated();
-      self.updateFileList();
+      self.originalGetSuccessClass = self.filesViewModel.getSuccessClass;
+      self.filesViewModel.getSuccessClass = function(data) {
+        let additional_css = "";
+        if (_.has(data, "gcodeAnalysis.progress")) {
+          additional_css = " print-time-genius-after";
+        }
+        return self.originalGetSuccessClass(data) + additional_css;
+      };
+      self.filesViewModel.requestData({force: true}); // So that the file list is updated with the changes above.
     }
 
     self.addAnalyzer = function() {
