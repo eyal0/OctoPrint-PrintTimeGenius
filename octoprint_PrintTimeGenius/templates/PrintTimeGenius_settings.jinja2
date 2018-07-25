@@ -1,8 +1,12 @@
 <form class="form-horizontal">
   <div class="control-group">
     <h3>{{ _('General options') }}</h3>
-    <label class="checkbox"><input type="checkbox" data-bind="checked: exactDurations">{{ _('Display precise durations instead of fuzzy ones.') }}</label>
-    <label class="checkbox"><input type="checkbox" data-bind="checked: enableOctoPrintAnalyzer">{{ _('Enbale OctoPrint\'s built-in analyzer.  (Slow and unnecessary.)') }}</label>
+    <label class="checkbox"><input type="checkbox" data-bind="checked: exactDurations">{{ _('Display precise durations instead of fuzzy ones') }}</label>
+    <label class="checkbox"><input type="checkbox" data-bind="checked: enableOctoPrintAnalyzer">{{ _('Enbale OctoPrint\'s built-in analyzer  (Slow and unnecessary)') }}</label>
+    <label class="checkbox"><input
+                              title="{{ _('Analyzing a file while printing might cause poor printing performace.') }}"
+                              type="checkbox"
+                              data-bind="checked: allowAnalysisWhilePrinting">{{ _('Allow analysis while printing (Only takes effect after saving)') }}</label>
     <h3>{{ _('Analyzers') }}</h3>
     <button class="btn" title="{{ _('The default analyzers are the suggested settings for all users') }}"
             data-bind="event: { click: resetAnalyzersToDefault }">{{ _('Reset analyzers to default') }}</button>

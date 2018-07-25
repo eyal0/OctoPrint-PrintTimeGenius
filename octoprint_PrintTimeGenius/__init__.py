@@ -19,6 +19,7 @@ import types
 import pkg_resources
 from collections import defaultdict
 from .printer_config import PrinterConfig
+import psutil
 
 def _interpolate(l, point):
   """Use the point value to interpolate a new value from the list.
@@ -133,6 +134,11 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
     super(GeniusAnalysisQueue, self).__init__(finished_callback)
     self._plugin = plugin
 
+  def _do_abort(self, reenqueue=True):
+    super(GeniusAnalysisQueue, self)._do_abort(reenqueue)
+    if self._plugin._settings.get(["allowAnalysisWhilePrinting"]):
+      self._plugin._logger.info("Abort requested but will be ignored due to settings.")
+
   def compensate_analysis(self, analysis):
     logger = self._plugin._logger
     """Compensate for the analyzed print time by looking at previous statistics of
@@ -190,6 +196,7 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
       logger.warning("Failed to compensate", exc_info=e)
 
   def _do_analysis(self, high_priority=False):
+    self._aborted = False
     logger = self._plugin._logger
     results = {}
     if self._plugin._settings.get(["enableOctoPrintAnalyzer"]):
@@ -213,11 +220,15 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
       results_err = ""
       try:
         popen = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if "IDLE_PRIORITY_CLASS" in dir(psutil):
+          psutil.Process(popen.pid).nice(psutil.IDLE_PRIORITY_CLASS)
+        else:
+          psutil.Process(popen.pid).nice(19)
         while popen.poll() is None:
-          if self._aborted:
+          if self._aborted and not self._plugin._settings.get(["allowAnalysisWhilePrinting"]):
             popen.terminate()
             raise AnalysisAborted(reenqueue=self._reenqueue)
-          time.sleep(0.05)
+          time.sleep(0.5)
         results_text = popen.stdout.read()
         results_err = popen.stderr.read()
         if popen.returncode != 0:
@@ -285,6 +296,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
             for (command, enabled) in built_in_analyzers],
         "exactDurations": True,
         "enableOctoPrintAnalyzer": False,
+        "allowAnalysisWhilePrinting": False,
         "print_history": [],
         "printer_config": []
     }
@@ -326,6 +338,11 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
   @octoprint.plugin.BlueprintPlugin.route("/analyse/<origin>/<path:path>", methods=["GET"])
   def analyze_file(self, origin, path):
     """Add a file to the analysis queue."""
+    if not self._settings.get(["allowAnalysisWhilePrinting"]) and self._printer.is_printing():
+      self._file_manager._analysis_queue.pause()
+    else:
+      self._file_manager._analysis_queue.resume()
+
     queue_entry = self._file_manager._analysis_queue_entry(origin, path)
     if queue_entry is None:
       return ""
