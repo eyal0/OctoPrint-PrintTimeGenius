@@ -101,6 +101,7 @@ $(function() {
       // Force an update because this is called after the format function has already run.
       self.exactDurations.valueHasMutated();
       self.updateFileList();
+      self.getAnalysisStatus();
     }
 
     self.addAnalyzer = function() {
@@ -115,6 +116,14 @@ $(function() {
           function (defaults) {
             self.analyzers(defaults['analyzers']);
           });
+    }
+    self.getAnalysisStatus = function() {
+      OctoPrint.get(OctoPrint.getBlueprintUrl("PrintTimeGenius") + "get_analysis_status");
+    }
+
+    self.onDataUpdaterPluginMessage = function (plugin, message) {
+      console.log(plugin);
+      console.log(message);
     }
   }
 

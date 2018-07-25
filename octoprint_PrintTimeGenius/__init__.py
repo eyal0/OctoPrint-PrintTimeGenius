@@ -289,6 +289,27 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
         "printer_config": []
     }
 
+  def make_analysis_status(self, directory=None):
+    ret = {}
+    if directory is None:
+      root = self._file_manager.list_files(recursive=True)
+      for storage_name, root_dir in root.iteritems():
+        ret.update(self.make_analysis_status(root_dir))
+      return ret
+    for v in directory.values():
+      if v["type"] == "machinecode":
+        ret[v['hash']] = True #TODO put something more interesting here
+      elif v["type"] == "folder":
+        ret.update(make_analysis_status(v["children"]))
+    return ret
+
+  @octoprint.plugin.BlueprintPlugin.route("/get_analysis_status", methods=["GET"])
+  def get_analysis_status(self):
+    self._plugin_manager.send_plugin_message("PrintTimeGenius", {
+        "analysisStatus": self.make_analysis_status()
+    })
+    return "" # Ignored
+
   @octoprint.plugin.BlueprintPlugin.route("/get_settings_defaults", methods=["GET"])
   def get_settings_defaults_as_string(self):
     return json.dumps(self.get_settings_defaults())
@@ -322,7 +343,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       del print_history[MAX_HISTORY_ITEMS:]
       self._settings.set(["print_history"], print_history)
 
-  @octoprint.plugin.BlueprintPlugin.route("/analyze/<origin>/<path:path>", methods=["GET"])
+  @octoprint.plugin.BlueprintPlugin.route("/analyze/<origin>/<path:path>", methods=["GET"]) # Different spellings
   @octoprint.plugin.BlueprintPlugin.route("/analyse/<origin>/<path:path>", methods=["GET"])
   def analyze_file(self, origin, path):
     """Add a file to the analysis queue."""
