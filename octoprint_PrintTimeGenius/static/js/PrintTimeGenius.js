@@ -102,6 +102,8 @@ $(function() {
       self.exactDurations.valueHasMutated();
       self.updateFileList();
       self.getAnalysisStatus();
+      self.filesViewModel.getSuccessClass = function(data) {};
+      self.filesViewModel.requestData({force: true}); // So that the file list is updated with the changes above.
     }
 
     self.addAnalyzer = function() {

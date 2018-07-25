@@ -300,7 +300,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       if v["type"] == "machinecode":
         ret[v['hash']] = True #TODO put something more interesting here
       elif v["type"] == "folder":
-        ret.update(make_analysis_status(v["children"]))
+        ret.update(self.make_analysis_status(v["children"]))
     return ret
 
   @octoprint.plugin.BlueprintPlugin.route("/get_analysis_status", methods=["GET"])
