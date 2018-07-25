@@ -99,7 +99,14 @@ $(function() {
       // Force an update because this is called after the format function has already run.
       self.exactDurations.valueHasMutated();
       self.getAnalysisStatus();
-      self.filesViewModel.getSuccessClass = function(data) {};
+      self.originalGetSuccessClass = self.filesViewModel.getSuccessClass;
+      self.filesViewModel.getSuccessClass = function(data) {
+        let additional_css = "";
+        if (_.has(data, "gcodeAnalysis.progress")) {
+          additional_css = " print-time-genius-after";
+        }
+        return self.originalGetSuccessClass(data) + additional_css;
+      };
       self.filesViewModel.requestData({force: true}); // So that the file list is updated with the changes above.
     }
 
@@ -118,11 +125,6 @@ $(function() {
     }
     self.getAnalysisStatus = function() {
       OctoPrint.get(OctoPrint.getBlueprintUrl("PrintTimeGenius") + "get_analysis_status");
-    }
-
-    self.onDataUpdaterPluginMessage = function (plugin, message) {
-      console.log(plugin);
-      console.log(message);
     }
   }
 
