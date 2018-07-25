@@ -222,7 +222,7 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
           if self._aborted:
             popen.terminate()
             raise AnalysisAborted(reenqueue=self._reenqueue)
-          time.sleep(0.05)
+          time.sleep(0.5)
         results_text = popen.stdout.read()
         results_err = popen.stderr.read()
         if popen.returncode != 0:
