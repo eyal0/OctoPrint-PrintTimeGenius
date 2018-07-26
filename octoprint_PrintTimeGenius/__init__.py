@@ -440,10 +440,14 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
 
   ##~~ Gcode Hook
   def command_sent_hook(self, comm_instance, phase, cmd, cmd_type, gcode, subcode=None, tags=None, *args, **kwargs):
+    if self._printer.is_printing():
+      return
     strip_cmd = cmd
     strip_cmd = strip_cmd.strip()
     self.update_printer_config(strip_cmd)
   def line_received_hook(self, comm_instance, line, *args, **kwargs):
+    if self._printer.is_printing():
+      return
     strip_line = line
     if strip_line.startswith("echo:"):
       strip_line = strip_line[len("echo:"):]
