@@ -447,7 +447,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     self.update_printer_config(strip_cmd)
   def line_received_hook(self, comm_instance, line, *args, **kwargs):
     if self._printer.is_printing():
-      return
+      return line
     strip_line = line
     if strip_line.startswith("echo:"):
       strip_line = strip_line[len("echo:"):]
