@@ -158,7 +158,7 @@ class PrinterConfig(object):
     return self
 
   def __str__(self):
-    return "\n".join(self.lines)
+    return ''.join(c for c in "\n".join(self.lines) if c.isdigit() or c.isalpha() or c.isspace())
 
   def __repr__(self):
     return "%s(%r)" % (self.__class__, self.__dict__)
