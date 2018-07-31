@@ -28,6 +28,14 @@ $(function() {
       })
       return result;
     };
+    self.original_processProgressData = self.printerStateViewModel._processProgressData;
+    self.printerStateViewModel._processProgressData = function(data) {
+      self.original_processProgressData(data);
+      self.printerStateViewModel.progress(
+          (data.printTime||0) /
+            ((data.printTime||0) + (data.printTimeLeft||0))
+            * 100);
+    };
     self.printerStateViewModel.printTimeLeftOriginString =
         self.printerStateViewModel.printTimeLeftOriginString.extend({
           addGenius: gettext("Based on a line-by-line preprocessing of the gcode (good accuracy)")});
