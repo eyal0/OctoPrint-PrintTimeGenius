@@ -127,6 +127,9 @@ $(function() {
     self.removeAnalyzer = function(analyzer) {
       self.analyzers.remove(analyzer);
     }
+    self.removePrintHistoryRow = function(row) {
+      self.print_history.remove(row);
+    }
     self.resetAnalyzersToDefault = function() {
       OctoPrint.get(OctoPrint.getBlueprintUrl("PrintTimeGenius") + "get_settings_defaults").done(
           function (defaults) {
