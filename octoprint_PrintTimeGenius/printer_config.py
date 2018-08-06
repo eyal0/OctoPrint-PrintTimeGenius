@@ -17,6 +17,8 @@ def get_code(line, code):
   'MULTI99'
   >>> get_code("M1 X2 Y3 MULTI99 E", "E")
   'E'
+  >>> get_code("M200 D1.75", "D")
+  'D1.75'
   """
   pos = line.find(code)
   if pos < 0:
@@ -80,7 +82,7 @@ def clean_line(line):
   >>> from printer_config import clean_line
   >>> clean_line("  foo ; bar  ;")
   'FOO'
-"""
+  """
   return line.partition(";")[0].strip().upper()
 
 class PrinterConfig(object):
@@ -158,7 +160,7 @@ class PrinterConfig(object):
     return self
 
   def __str__(self):
-    return ''.join(c for c in "\n".join(self.lines) if c.isdigit() or c.isalpha() or c.isspace())
+    return ''.join(c for c in "\n".join(self.lines) if c.isdigit() or c.isalpha() or c.isspace() or c == '.')
 
   def __repr__(self):
     return "%s(%r)" % (self.__class__, self.__dict__)
