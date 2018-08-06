@@ -31,10 +31,10 @@ $(function() {
     self.original_processProgressData = self.printerStateViewModel._processProgressData;
     self.printerStateViewModel._processProgressData = function(data) {
       self.original_processProgressData(data);
-      if (data.printTime && data.printTimeLeft) {
+      if (data.printTimeLeft) {
         self.printerStateViewModel.progress(
             (data.printTime||0) /
-              ((data.printTime||0) + (data.printTimeLeft||0))
+              ((data.printTime||0) + (data.printTimeLeft))
               * 100);
       }
     };
