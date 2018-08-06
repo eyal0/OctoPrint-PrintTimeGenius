@@ -28,6 +28,16 @@ $(function() {
       })
       return result;
     };
+    self.original_processProgressData = self.printerStateViewModel._processProgressData;
+    self.printerStateViewModel._processProgressData = function(data) {
+      self.original_processProgressData(data);
+      if (data.printTimeLeft) {
+        self.printerStateViewModel.progress(
+            (data.printTime||0) /
+              ((data.printTime||0) + (data.printTimeLeft))
+              * 100);
+      }
+    };
     self.printerStateViewModel.printTimeLeftOriginString =
         self.printerStateViewModel.printTimeLeftOriginString.extend({
           addGenius: gettext("Based on a line-by-line preprocessing of the gcode (good accuracy)")});
@@ -116,6 +126,9 @@ $(function() {
 
     self.removeAnalyzer = function(analyzer) {
       self.analyzers.remove(analyzer);
+    }
+    self.removePrintHistoryRow = function(row) {
+      self.print_history.remove(row);
     }
     self.resetAnalyzersToDefault = function() {
       OctoPrint.get(OctoPrint.getBlueprintUrl("PrintTimeGenius") + "get_settings_defaults").done(

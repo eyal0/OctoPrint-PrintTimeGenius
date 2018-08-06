@@ -118,6 +118,9 @@
                   data-bind="text:
                              _.has($data, 'compensatedPrintTime') ?
                              compensatedPrintTime().toFixed(1) : ''"></td>
+              <td>
+                <a title="Remove row, if this is an atypical sample and shouldn't be used for future compensation" class="btn btn-danger" data-bind="click: $parent.removePrintHistoryRow"><i class="fa fa-trash-o"></i></a>
+              </td>
             </tr>
           </tbody>
         </table>
