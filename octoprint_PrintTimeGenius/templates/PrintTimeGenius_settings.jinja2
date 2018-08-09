@@ -6,31 +6,7 @@
     <label title="{{ _('Analyzing a file while printing might cause poor printing performace.') }}"
            class="checkbox"><input
                               type="checkbox"
-                              data-bind="checked: allowAnalysisWhilePrinting">{{ _('Allow analysis while printing (only takes effect after saving)') }}</label>
-    <h3>{{ _('Analyzers') }}</h3>
-    <button class="btn" title="{{ _('The default analyzers are the suggested settings for all users') }}"
-            data-bind="event: { click: resetAnalyzersToDefault }">{{ _('Reset analyzers to default') }}</button>
-    <div class="row-fluid">
-      <h4 class="span10">
-        <div class="span11">{{ _('Command') }}</div>
-        <div class="span1">{{ _('Enabled') }}</div>
-    </div>
-    <div style="margin-top: 5px" data-bind="foreach: analyzers">
-      <div>
-        <div class="span10">
-          <input type="text" class="span11 text-left" data-bind="value: command">
-          <input type="checkbox" style="margin-left: 20px" data-bind="checked: enabled">
-        </div>
-        <div class="span2">
-          <a title="Remove analyzer" class="btn btn-danger" data-bind="click: $parent.removeAnalyzer"><i class="fa fa-trash-o"></i></a>
-        </div>
-      </div>
-    </div>
-    <div class="row-fluid">
-      <div class="offset10 span2" style="margin-top: 5px">
-        <a title="Add analyzer" class="btn btn-primary" data-bind="click: addAnalyzer"><i class="fa fa-plus"></i></a>
-      </div>
-    </div>
+                              data-bind="checked: allowAnalysisWhilePrinting">{{ _('Allow analysis while printing (only takes effect after saving)') }}<span class="label label-important">May slow down your printer</span></label>
     <h3>{{ _('Analyze') }}</h3>
     You can use this to run an analysis right now. and also look at the output to debug problems.
     <div class="row-fluid">
@@ -54,12 +30,37 @@
         </small>
       </div>
       <div class="hide" style="display: none;">
+        <h3>{{ _('Analyzers') }}</h3>
+        <button class="btn" title="{{ _('The default analyzers are the suggested settings for all users') }}"
+                data-bind="event: { click: resetAnalyzersToDefault }">{{ _('Reset analyzers to default') }}</button>
+        <div class="row-fluid">
+          <h4 class="span10">
+            <div class="span11">{{ _('Command') }}</div>
+            <div class="span1">{{ _('Enabled') }}</div>
+        </div>
+        <div style="margin-top: 5px" data-bind="foreach: analyzers">
+          <div>
+            <div class="span10">
+              <input type="text" class="span11 text-left" data-bind="value: command">
+              <input type="checkbox" style="margin-left: 20px" data-bind="checked: enabled">
+            </div>
+            <div class="span2">
+              <a title="Remove analyzer" class="btn btn-danger" data-bind="click: $parent.removeAnalyzer"><i class="fa fa-trash-o"></i></a>
+            </div>
+          </div>
+        </div>
+        <div class="row-fluid">
+          <div class="offset10 span2" style="margin-top: 5px">
+            <a title="Add analyzer" class="btn btn-primary" data-bind="click: addAnalyzer"><i class="fa fa-plus"></i></a>
+          </div>
+        </div>
         <h3>{{ _('Debug') }}</h3>
         <h4>{{ _('Debug Analysis') }}</h4>
         Analyze a file and then <a href="downloads/logs/plugin_PrintTimeGenius_engine.log">download the log</a>.
         If you see errors, <a href="https://github.com/eyal0/OctoPrint-PrintTimeGenius/issues">report them</a>.
         <h4>{{ _('Debug Estimates') }}</h4>
-        <p>If you want to make a graph of the print time estimate and compare with OctoPrint's built-in estimates:
+        <p><span class="label label-important">May slow down your printer</span>
+          If you want to make a graph of the print time estimate and compare with OctoPrint's built-in estimates:
           <ol>
             <li>In settings, go to Logging.</li>
             <li>Set "octoprint.plugins.PrintTimeGenius" level to "DEBUG".</li>
