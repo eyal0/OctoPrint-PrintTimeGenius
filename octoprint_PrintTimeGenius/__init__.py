@@ -64,6 +64,18 @@ class GeniusEstimator(PrintTimeEstimator):
     self._current_progress_index = -1 # Points to the entry that we used for remaining time
     self._current_total_printTime = None # When we started using the current_progress
     self._called_genius_yet = False
+    self.recheck_metadata = True
+
+  def _get_metadata(self):
+    try:
+      self._metadata = self._file_manager.get_metadata(self._origin, self._path)
+    except octoprint.filemanager.NoSuchStorage as e:
+      #The metadata is not found or maybe not yet written.
+      self._metadata = None
+    if not self._metadata or not "analysis" in self._metadata or not "progress" in self._metadata["analysis"]:
+      self._progress = None
+    else:
+      self._progress = self._metadata["analysis"]["progress"]
 
   def _genius_estimate(self, progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType):
     """Return an estimate for the total print time remaining.
@@ -77,30 +89,25 @@ class GeniusEstimator(PrintTimeEstimator):
       # Pretend like the first call is always at progress 0
       progress = 0
       self._called_genius_yet = True
-    try:
-      metadata = self._file_manager.get_metadata(self._origin, self._path)
-    except octoprint.filemanager.NoSuchStorage as e:
-      #The metadata is not found or maybe not yet written.
+    if self.recheck_metadata:
+      self._get_metadata()
+      self.recheck_metadata = False;
+    if not self._progress:
       return None
-    if not metadata:
-      return None
-    if not "analysis" in metadata or not "progress" in metadata["analysis"]:
-      return None
-    filepos_to_progress = metadata["analysis"]["progress"]
     # Can we increment the current_progress_index?
     new_progress_index = self._current_progress_index
-    while (new_progress_index + 1 < len(filepos_to_progress) and
-           progress >= filepos_to_progress[new_progress_index+1][0]):
+    while (new_progress_index + 1 < len(self._progress) and
+           progress >= self._progress[new_progress_index+1][0]):
       new_progress_index += 1 # Increment
     if new_progress_index < 0:
       return None # We're not even in range yet.
     if new_progress_index != self._current_progress_index:
       # We advanced to a new index, let's make new estimates.
-      if (progress > metadata["analysis"]["firstFilament"] and
+      if (progress > self._metadata["analysis"]["firstFilament"] and
           not "firstFilamentPrintTime" in self._current_history):
         self._current_history["firstFilamentPrintTime"] = printTime
       if (not "lastFilamentPrintTime" in self._current_history or
-          progress <= metadata["analysis"]["lastFilament"]):
+          progress <= self._metadata["analysis"]["lastFilament"]):
         self._current_history["lastFilamentPrintTime"] = printTime
       interpolation = _interpolate(progress, self._progress[new_progress_index], self._progress[new_progress_index+1])
       # This is our best guess for the total print time.
@@ -284,6 +291,8 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
     except Exception as e:
       logger.warning("Failed to compensate", exc_info=e)
     results["compensatedPrintTime"] = results["estimatedPrintTime"]
+    if self._plugin._printer._estimator and isinstance(self._plugin._printer._estimator, GeniusEstimator):
+      self._plugin._printer._estimator.recheck_metadata = True
     return results
 
 class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
