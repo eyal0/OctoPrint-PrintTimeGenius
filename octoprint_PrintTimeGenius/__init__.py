@@ -21,7 +21,19 @@ from collections import defaultdict
 from .printer_config import PrinterConfig
 import psutil
 
-def _interpolate(l, point):
+def _interpolate(point, left, right):
+  """Use the point to interpolate a value from left and right.  point should be a
+  number.  left and right are each lists of the same length.  The return value
+  is a new list the same length as left and right with each value in the list
+  adjusted to be the weighted average between left and right such that the first
+  value of the return value is equal to the point.
+  """
+  # ratio 0 means use the left_index one, 1 means the right_index one
+  ratio = (point - left[0])/(right[0] - left[0])
+  return [x[0]*(1-ratio) + x[1]*ratio
+          for x in zip(left, right)]
+
+def _interpolate_list(l, point):
   """Use the point value to interpolate a new value from the list.
   l must be a sorted list of lists.  point is a value to interpolate.
   Return None if the point is out of range.
@@ -35,10 +47,9 @@ def _interpolate(l, point):
     return l[-1]
   right_index = bisect.bisect_right(l, [point])
   left_index = right_index - 1
-  # ratio 0 means use the left_index one, 1 means the right_index one
-  ratio = (point - l[left_index][0])/(l[right_index][0] - l[left_index][0])
-  return [x[0]*(1-ratio) + x[1]*ratio
-          for x in zip(l[left_index], l[right_index])]
+  right = l[right_index]
+  left = l[left_index]
+  return _interpolate(point, left, right)
 
 class GeniusEstimator(PrintTimeEstimator):
   """Uses previous generated analysis to estimate print time remaining."""
@@ -91,9 +102,7 @@ class GeniusEstimator(PrintTimeEstimator):
       if (not "lastFilamentPrintTime" in self._current_history or
           progress <= metadata["analysis"]["lastFilament"]):
         self._current_history["lastFilamentPrintTime"] = printTime
-      interpolation = _interpolate(filepos_to_progress, progress)
-      if not interpolation:
-        return None
+      interpolation = _interpolate(progress, self._progress[new_progress_index], self._progress[new_progress_index+1])
       # This is our best guess for the total print time.
       self._current_total_printTime = interpolation[1] + printTime
       self._current_progress_index = new_progress_index
@@ -185,7 +194,7 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
       logger.info("Average scaling factor: {}".format(average_print_time_factor))
       # Now make a new progress map.
       new_progress = []
-      last_filament_remaining_time = _interpolate(analysis["progress"],
+      last_filament_remaining_time = _interpolate_list(analysis["progress"],
                                                   analysis["lastFilament"])[1]
       for p in analysis["progress"]:
         if p[0] < analysis["firstFilament"]:
@@ -263,11 +272,11 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
         return results
       results["analysisPrintTime"] = results["estimatedPrintTime"]
       results["analysisFirstFilamentPrintTime"] = (
-          results["analysisPrintTime"] - _interpolate(
+          results["analysisPrintTime"] - _interpolate_list(
               results["progress"],
               results["firstFilament"])[1])
       results["analysisLastFilamentPrintTime"] = (
-          results["analysisPrintTime"] - _interpolate(
+          results["analysisPrintTime"] - _interpolate_list(
               results["progress"],
               results["lastFilament"])[1])
       self.compensate_analysis(results) # Adjust based on history
