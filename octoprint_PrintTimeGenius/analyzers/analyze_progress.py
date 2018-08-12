@@ -37,6 +37,7 @@ def main():
   first_filament = None
   last_filament = None
   max_filament = None
+  most_recent_progress = float("-inf")
   for line in output.split("\n"):
     if not line:
       continue
@@ -48,23 +49,36 @@ def main():
       if not max_filament or filament > max_filament:
         last_filament = filepos
         max_filament = filament
-      progress.append([filepos, time])
+        last_filament_row = [filepos, time]
+      if filepos == first_filament or most_recent_progress+60 < time:
+        most_recent_progress = time
+        progress.append([filepos, time])
+        last_row = None
+      else:
+        last_row = [filepos, time]
     elif line.startswith("Analysis:"):
       line = line[len("Analysis:"):]
       result.update(json.loads(line))
+  if last_row:
+    progress.append(last_row)
   result["firstFilament"] = first_filament
   result["lastFilament"] = last_filament
   total_time = progress[-1][1]
-  most_recent_progress = float("-inf")
   result["progress"] = [[0,total_time]]
   for progress_entry in progress:
-    if (most_recent_progress+60 < progress_entry[1] or
-        progress_entry[0] == first_filament or
-        progress_entry[0] == last_filament):
-      most_recent_progress = progress_entry[1]
+    if last_filament_row and progress_entry[0] > last_filament_row[0]:
+      # Squeeze this row into the right spot.
+      result["progress"].append([last_filament_row[0],
+                                 total_time-last_filament_row[1]])
+      last_filament_row = None
+    if not last_filament_row or progress_entry[0] != last_filament_row[0]:
       result["progress"].append(
           [progress_entry[0],
            total_time-progress_entry[1]])
+  if last_filament_row:
+    # We didn't ge to add it earlier so add it now.
+    result["progress"].append([last_filament_row[0],
+                               total_time-last_filament_row[1]])
   result["progress"].append([1,0])
   result["estimatedPrintTime"] = total_time
   print(json.dumps(result))
