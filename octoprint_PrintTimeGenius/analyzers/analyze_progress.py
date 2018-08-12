@@ -28,7 +28,7 @@ def main():
     print("Not executable: {}".format(cmd[0]), file=sys.stderr)
     exit(3)
   try:
-    output = subprocess.check_output(cmd)
+    output = subprocess.Popen(cmd, stdout=subprocess.PIPE)
   except Exception as e:
     print(e, file=sys.stderr)
     exit(1)
@@ -38,7 +38,7 @@ def main():
   last_filament = None
   max_filament = None
   most_recent_progress = float("-inf")
-  for line in output.split("\n"):
+  for line in output.stdout:
     if not line:
       continue
     if line.startswith("Progress:"):
@@ -82,7 +82,7 @@ def main():
   result["progress"].append([1,0])
   result["estimatedPrintTime"] = total_time
   print(json.dumps(result))
-  exit(0)
+  exit(output.wait())
 
 if __name__ == "__main__":
   main()
