@@ -10,6 +10,8 @@ from octoprint.filemanager.analysis import AnalysisAborted
 import logging
 import bisect
 import subprocess
+from pkg_resources import parse_version
+import sarge
 import json
 import shlex
 import time
@@ -244,19 +246,28 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
       logger.info("Running: {}".format(command))
       results_err = ""
       try:
-        popen = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if "IDLE_PRIORITY_CLASS" in dir(psutil):
-          psutil.Process(popen.pid).nice(psutil.IDLE_PRIORITY_CLASS)
+        if parse_version(sarge.__version__) >= parse_version('0.1.5'):
+          # Because in version 0.1.5 the name was changed in sarge.
+          async_kwarg = 'async_'
         else:
-          psutil.Process(popen.pid).nice(19)
-        while popen.poll() is None:
+          async_kwarg = 'async'
+        sarge_job = sarge.capture_both(command, **{async_kwarg: True})
+        # Wait for sarge to begin
+        while not sarge_job.processes or not sarge_job.processes[0]:
+          time.sleep(0.5)
+        if "IDLE_PRIORITY_CLASS" in dir(psutil):
+          psutil.Process(sarge_job.processes[0].pid).nice(psutil.IDLE_PRIORITY_CLASS)
+        else:
+          psutil.Process(sarge_job.processes[0].pid).nice(19)
+        while sarge_job.commands[0].poll() is None:
           if self._aborted and not self._plugin._settings.get(["allowAnalysisWhilePrinting"]):
-            popen.terminate()
+            sarge_job.commands[0].terminate()
             raise AnalysisAborted(reenqueue=self._reenqueue)
           time.sleep(0.5)
-        results_text = popen.stdout.read()
-        results_err = popen.stderr.read()
-        if popen.returncode != 0:
+        sarge_job.wait()
+        results_text = sarge_job.stdout.text
+        results_err = sarge_job.stderr.text
+        if sarge_job.returncode != 0:
           raise Exception(results_err)
         logger.info("Subprocess output: {}".format(results_err))
         logger.info("Result: {}".format(results_text))
@@ -270,6 +281,9 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
         raise # Reraise it
       except Exception as e:
         logger.warning("Failed to run '{}'".format(command), exc_info=e)
+      finally:
+        if sarge_job:
+          sarge_job.close()
     # Before we potentially modify the result from analysis, save them.
     try:
       if not all(x in results
