@@ -254,13 +254,18 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
         # Wait for sarge to begin
         while not sarge_job.processes or not sarge_job.processes[0]:
           time.sleep(0.5)
+        process = psutil.Process(sarge_job.processes[0].pid)
         if "IDLE_PRIORITY_CLASS" in dir(psutil):
-          psutil.Process(sarge_job.processes[0].pid).nice(psutil.IDLE_PRIORITY_CLASS)
+          for p in [process] + process.children(recursive=True):
+            p.nice(psutil.IDLE_PRIORITY_CLASS)
         else:
-          psutil.Process(sarge_job.processes[0].pid).nice(19)
+          for p in [process] + process.children(recursive=True):
+            p.nice(19)
         while sarge_job.commands[0].poll() is None:
           if self._aborted and not self._plugin._settings.get(["allowAnalysisWhilePrinting"]):
-            sarge_job.commands[0].terminate()
+            for p in process.children(recursive=True) + [process]:
+              p.terminate()
+            sarge_job.close()
             raise AnalysisAborted(reenqueue=self._reenqueue)
           time.sleep(0.5)
         sarge_job.close()
