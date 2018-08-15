@@ -264,7 +264,7 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
             sarge_job.commands[0].terminate()
             raise AnalysisAborted(reenqueue=self._reenqueue)
           time.sleep(0.5)
-        sarge_job.wait()
+        sarge_job.close()
         results_text = sarge_job.stdout.text
         results_err = sarge_job.stderr.text
         if sarge_job.returncode != 0:
