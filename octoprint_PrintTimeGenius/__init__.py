@@ -255,11 +255,10 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
         while not sarge_job.processes or not sarge_job.processes[0]:
           time.sleep(0.5)
         process = psutil.Process(sarge_job.processes[0].pid)
-        if "IDLE_PRIORITY_CLASS" in dir(psutil):
-          for p in [process] + process.children(recursive=True):
+        for p in [process] + process.children(recursive=True):
+          if "IDLE_PRIORITY_CLASS" in dir(psutil):
             p.nice(psutil.IDLE_PRIORITY_CLASS)
-        else:
-          for p in [process] + process.children(recursive=True):
+          else:
             p.nice(19)
         while sarge_job.commands[0].poll() is None:
           if self._aborted and not self._plugin._settings.get(["allowAnalysisWhilePrinting"]):
