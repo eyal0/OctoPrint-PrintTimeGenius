@@ -9,7 +9,6 @@ from octoprint.filemanager.analysis import GcodeAnalysisQueue
 from octoprint.filemanager.analysis import AnalysisAborted
 import logging
 import bisect
-import subprocess
 from pkg_resources import parse_version
 import sarge
 import json
@@ -269,7 +268,7 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
         results_err = sarge_job.stderr.text
         if sarge_job.returncode != 0:
           raise Exception(results_err)
-        logger.info("Subprocess output: {}".format(results_err))
+        logger.info("Sarge output: {}".format(results_err))
         logger.info("Result: {}".format(results_text))
         new_results = json.loads(results_text)
         results.update(new_results)
