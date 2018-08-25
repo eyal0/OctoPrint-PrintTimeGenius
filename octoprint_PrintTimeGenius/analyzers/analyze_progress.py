@@ -10,6 +10,8 @@ import platform
 def main():
   binary_base_name = sys.argv[1]
   machine = platform.machine()
+  if platform.system() == "Darwin":
+    machine = "darwin-" + machine
   gcode = sys.argv[2]
   mcodes = None
   if len(sys.argv) > 3:
