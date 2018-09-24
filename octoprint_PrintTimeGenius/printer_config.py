@@ -131,6 +131,8 @@ class PrinterConfig(object):
     for (mcodes, unique, merge) in [(["M92", "M201", "M203"], "MT", "MTXYZE"),
                                     (["M204"], "M", "MSPRT"),
                                     (["M205"], "M", "MBESTXYZJ"),
+                                    (["M207"], "M", "MFSWZ"),
+                                    (["M208"], "M", "MFRSW"),
                                     (["M220"], "M", "MS"),
                                     (["M221"], "MT", "MTS")]:
       if mcode in mcodes:
