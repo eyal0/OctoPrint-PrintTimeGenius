@@ -50,11 +50,23 @@ ALL_GCODE_LINE_ANALYZERS.append(process_slic3r_filament)
 def process_slic3r_print_time(gcode_line):
   """Match a Slic3r PE print time estimate"""
   ret = dd()
-  m = re.match('\s*;\s*estimated printing time\s*=\s*(.*)\s*', gcode_line)
+  m = re.match('\s*;\s*estimated printing time(?:.*normal.*)?\s*=\s*(.*)\s*', gcode_line)
   if m:
     ret['estimatedPrintTime'] = process_time_text(m.group(1))
   return ret
 ALL_GCODE_LINE_ANALYZERS.append(process_slic3r_print_time)
+
+def process_slic3r_print_time_remaining(gcode_line):
+  """Match a Slic3r PE print time remaining estimate"""
+  ret = dd()
+  m = re.match('\s*M73\s+P([0-9.]+)\s+R([0-9.]+)\s*', gcode_line)
+  if m:
+    minutes_text = m.group(2)
+    minutes_elapsed = float(minutes_text)
+    global reverse_progress
+    reverse_progress.append([file_position, minutes_elapsed*60])
+  return ret
+ALL_GCODE_LINE_ANALYZERS.append(process_slic3r_print_time_remaining)
 
 def process_cura330_print_time(gcode_line):
   """Match Cura330 time estimate"""
@@ -87,7 +99,7 @@ def process_cura1504_print_time(gcode_line):
   if m:
     ret['estimatedPrintTime'] = process_time_text(m.group(1))
   return ret
-ALL_GCODE_LINE_ANALYZERS.append(process_slic3r_print_time)
+ALL_GCODE_LINE_ANALYZERS.append(process_cura1504_print_time)
 
 def process_simplify3d_print_time(gcode_line):
   """Match Simplify3D time estimate"""
@@ -122,6 +134,7 @@ ALL_GCODE_LINE_ANALYZERS.append(process_simplify3d_print_time)
 
 file_position = 0
 forward_progress = []
+reverse_progress = []
 def update(d, u):
   """Do deep updates of dict."""
   for k, v in u.iteritems():
@@ -144,7 +157,7 @@ def get_analysis_from_gcode(machinecode_path):
     for gcode_line in gcode_lines:
       global file_position
       file_position += len(gcode_line)
-      if not gcode_line.startswith(";"):
+      if not gcode_line or gcode_line[0] not in ';M':
         continue # This saves a lot of time
 
       for gcode_analyzer in ALL_GCODE_LINE_ANALYZERS:
@@ -155,11 +168,23 @@ def get_analysis_from_gcode(machinecode_path):
 
   # Convert forward_progress to reverse progress if we found it.
   if forward_progress:
-    analysis['progress'] = (
-        [[0, analysis['estimatedPrintTime']]] +
-        [[filepos/file_position, analysis['estimatedPrintTime'] - remaining]
-          for [filepos, remaining] in forward_progress] +
-        [[1, 0]])
+    if 'progress' not in analysis:
+      analysis['progress'] = []
+    analysis['progress'] += [
+        [filepos/file_position, analysis['estimatedPrintTime'] - elapsed]
+        for [filepos, elapsed] in forward_progress]
+  if reverse_progress:
+    print reverse_progress
+    if 'progress' not in analysis:
+      analysis['progress'] = []
+    analysis['progress'] += [
+        [filepos/file_position, remaining]
+         for [filepos, remaining] in reverse_progress]
+  if 'progress' in analysis:
+    analysis['progress'] += [
+        [0, analysis['estimatedPrintTime']],
+        [1, 0]]
+    analysis['progress'].sort()
   return json.dumps(analysis)
 
 if __name__ == "__main__":
