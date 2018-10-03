@@ -91,6 +91,7 @@ $(function() {
       self.exactDurations = printTimeGeniusSettings.exactDurations;
       self.enableOctoPrintAnalyzer = printTimeGeniusSettings.enableOctoPrintAnalyzer;
       self.allowAnalysisWhilePrinting = printTimeGeniusSettings.allowAnalysisWhilePrinting;
+      self.allowAnalysisWhileHeating = printTimeGeniusSettings.allowAnalysisWhileHeating;
       self.print_history = printTimeGeniusSettings.print_history;
       // Overwrite the formatFuzzyPrintTime as needed.
       self.originalFormatFuzzyPrintTime = formatFuzzyPrintTime;

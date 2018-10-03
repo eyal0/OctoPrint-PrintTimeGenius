@@ -145,6 +145,20 @@ class GeniusEstimator(PrintTimeEstimator):
       self._logger.error("Failed to estimate", exc_info=e)
       return (0, 'genius')
 
+def _is_heating(printer, file_manager):
+  """Returns true if the printer is currently heating.  If we can't figure it out, returns false."""
+  try:
+    current_job_data = printer.get_current_job()
+    current_job_origin = current_job_data['file']['origin']
+    current_job_path = current_job_data['file']['path']
+    current_job_metadata = file_manager.get_metadata(current_job_origin, current_job_path)
+    current_job_heating_filepos = current_job_metadata["analysis"]["firstFilament"]
+    current_job_filesize = current_job_data['file']['size']
+    current_filepos = printer.get_file_position()['pos']
+    return current_filepos/current_job_filesize < current_job_heating_filepos
+  except Exception as e:
+    return False # If we can't figure it out, assume that we are printing.
+
 class GeniusAnalysisQueue(GcodeAnalysisQueue):
   """Generate an analysis to use for printing time remaining later."""
   def __init__(self, finished_callback, plugin):
@@ -153,7 +167,10 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
 
   def _do_abort(self, reenqueue=True):
     super(GeniusAnalysisQueue, self)._do_abort(reenqueue)
-    if self._plugin._settings.get(["allowAnalysisWhilePrinting"]):
+    heating = _is_heating(self._plugin._printer, self._plugin._file_manager)
+    if heating and self._plugin._settings.get(["allowAnalysisWhileHeating"]):
+      self._plugin._logger.info("Abort requested but will be ignored until heating is done due to settings.")
+    elif not heating and self._plugin._settings.get(["allowAnalysisWhilePrinting"]):
       self._plugin._logger.info("Abort requested but will be ignored due to settings.")
 
   def compensate_analysis(self, analysis):
@@ -170,10 +187,10 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
         return
       print_history = [ph for ph in print_history
                        if (all(x in ph for x in ("firstFilamentPrintTime",
-                                                  "lastFilamentPrintTime",
-                                                  "payload",
-                                                  "analysisLastFilamentPrintTime",
-                                                  "analysisFirstFilamentPrintTime")) and
+                                                 "lastFilamentPrintTime",
+                                                 "payload",
+                                                 "analysisLastFilamentPrintTime",
+                                                 "analysisFirstFilamentPrintTime")) and
                             "time" in ph["payload"])]
       if not print_history:
         return
@@ -230,8 +247,7 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
       try:
         results.update(super(GeniusAnalysisQueue, self)._do_analysis(high_priority))
       except AnalysisAborted as e:
-        logger.info("Probably starting printing, aborting built-in analysis.",
-                    exc_info=e)
+        logger.info("Probably starting printing, aborting built-in analysis.")
         raise # Reraise it
       logger.info("Result: {}".format(results))
       self._finished_callback(self._current, results)
@@ -261,11 +277,14 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
           else:
             p.nice(19)
         while sarge_job.commands[0].poll() is None:
-          if self._aborted and not self._plugin._settings.get(["allowAnalysisWhilePrinting"]):
-            for p in process.children(recursive=True) + [process]:
-              p.terminate()
-            sarge_job.close()
-            raise AnalysisAborted(reenqueue=self._reenqueue)
+          if self._aborted:
+            heating = _is_heating(self._plugin._printer, self._plugin._file_manager)
+            if ((heating and not self._plugin._settings.get(["allowAnalysisWhileHeating"])) or
+                (not heating and not self._plugin._settings.get(["allowAnalysisWhilePrinting"]))):
+              for p in process.children(recursive=True) + [process]:
+                p.terminate()
+              sarge_job.close()
+              raise AnalysisAborted(reenqueue=self._reenqueue)
           time.sleep(0.5)
         sarge_job.close()
         results_text = sarge_job.stdout.text
@@ -279,8 +298,7 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
         logger.info("Merged result: {}".format(results))
         self._finished_callback(self._current, results)
       except AnalysisAborted as e:
-        logger.info("Probably started printing, aborting: '{}'".format(command),
-                    exc_info=e)
+        logger.info("Probably started printing, aborting: '{}'".format(command))
         raise # Reraise it
       except Exception as e:
         logger.warning("Failed to run '{}'".format(command), exc_info=e)
@@ -342,6 +360,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
         "exactDurations": True,
         "enableOctoPrintAnalyzer": False,
         "allowAnalysisWhilePrinting": False,
+        "allowAnalysisWhileHeating": True,
         "print_history": [],
         "printer_config": []
     }
@@ -386,7 +405,10 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
   @octoprint.plugin.BlueprintPlugin.route("/analyse/<origin>/<path:path>", methods=["GET"])
   def analyze_file(self, origin, path):
     """Add a file to the analysis queue."""
-    if not self._settings.get(["allowAnalysisWhilePrinting"]) and self._printer.is_printing():
+    heating = _is_heating(self._printer, self._file_manager)
+    if (self._printer.is_printing() and
+        ((heating and not self._settings.get(["allowAnalysisWhileHeating"])) or
+         (not heating and not self._settings.get(["allowAnalysisWhilePrinting"])))):
       self._file_manager._analysis_queue.pause()
     else:
       self._file_manager._analysis_queue.resume()
