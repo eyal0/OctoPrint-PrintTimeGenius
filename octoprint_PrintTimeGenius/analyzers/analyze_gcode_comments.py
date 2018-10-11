@@ -207,7 +207,6 @@ def get_analysis_from_gcode(machinecode_path, parsers):
         [filepos/file_position, analysis['estimatedPrintTime'] - elapsed]
         for [filepos, elapsed] in forward_progress]
   if reverse_progress:
-    print reverse_progress
     if 'progress' not in analysis:
       analysis['progress'] = []
     analysis['progress'] += [

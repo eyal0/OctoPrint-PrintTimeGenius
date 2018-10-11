@@ -7,8 +7,14 @@
            class="checkbox"><input
                               type="checkbox"
                               data-bind="checked: allowAnalysisWhilePrinting">{{ _('Allow analysis while printing (only takes effect after saving)') }}<span class="label label-important">May slow down your printer</span></label>
+    <h3>{{ _('Analyzers') }}</h3>
+    <!-- ko foreach: analyzers -->
+      <label class="checkbox">
+        <input type="checkbox" data-bind="checked: enabled"><div type="checkbox" data-bind="text: description"></div>
+      </label>
+    <!-- /ko -->
     <h3>{{ _('Analyze') }}</h3>
-    You can use this to run an analysis right now. and also look at the output to debug problems.
+    You can use this to run an analysis right now and also look at the output to debug problems.
     <div class="row-fluid">
       <label class="span9">File to analyze:
         <select class="span9" id="stlviewer_file_list" data-bind="options: FileList,
@@ -35,13 +41,15 @@
                 data-bind="event: { click: resetAnalyzersToDefault }">{{ _('Reset analyzers to default') }}</button>
         <div class="row-fluid">
           <h4 class="span10">
-            <div class="span11">{{ _('Command') }}</div>
+            <div class="span4">{{ _('Description') }}</div>
+            <div class="span7">{{ _('Command') }}</div>
             <div class="span1">{{ _('Enabled') }}</div>
         </div>
         <div style="margin-top: 5px" data-bind="foreach: analyzers">
           <div>
             <div class="span10">
-              <input type="text" class="span11 text-left" data-bind="value: command">
+              <input type="text" class="span4 text-left" data-bind="value: description">
+              <input type="text" class="span7 text-left" data-bind="value: command">
               <input type="checkbox" style="margin-left: 20px" data-bind="checked: enabled">
             </div>
             <div class="span2">
