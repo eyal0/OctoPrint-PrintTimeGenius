@@ -369,16 +369,25 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
   def get_settings_defaults(self):
     current_path = os.path.dirname(os.path.realpath(__file__))
     built_in_analyzers = [
-        ('"{{python}}" "{analyzer}" "{{{{gcode}}}}"'.format(
-            analyzer=os.path.join(current_path, "analyzers/analyze_gcode_comments.py")), False),
-        ('"{{python}}" "{analyzer}" "marlin-calc" "{{{{gcode}}}}" "{{{{mcodes}}}}"'.format(
-            analyzer=os.path.join(current_path, "analyzers/analyze_progress.py")), True)
+        ("All gcode analyzers (usually not as good as Marlin calc)",
+         '"{{python}}" "{analyzer}" "{{{{gcode}}}}"'.format(
+             analyzer=os.path.join(current_path, "analyzers/analyze_gcode_comments.py")),
+         False),
+        ("Marlin firmware simulation (replaces Octoprint built-in, faster and more accurate)",
+         '"{{python}}" "{analyzer}" marlin-calc "{{{{gcode}}}}" "{{{{mcodes}}}}"'.format(
+             analyzer=os.path.join(current_path, "analyzers/analyze_progress.py")),
+         True),
+        ("Use Slic3r PE M73 time remaining",
+         '"{{python}}" "{analyzer}" "{{{{gcode}}}}" --parsers slic3r_pe_print_time slic3r_pe_print_time_remaining'.format(
+             analyzer=os.path.join(current_path, "analyzers/analyze_gcode_comments.py")),
+         False),
     ]
     return {
         "analyzers": [
-            {"command": command.format(python=sys.executable),
+            {"description": description,
+             "command": command.format(python=sys.executable),
              "enabled": enabled}
-            for (command, enabled) in built_in_analyzers],
+            for (description, command, enabled) in built_in_analyzers],
         "exactDurations": True,
         "enableOctoPrintAnalyzer": False,
         "allowAnalysisWhilePrinting": False,
