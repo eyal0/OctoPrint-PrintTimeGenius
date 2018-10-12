@@ -3,6 +3,10 @@
     <h3>{{ _('General options') }}</h3>
     <label class="checkbox"><input type="checkbox" data-bind="checked: exactDurations">{{ _('Display precise durations instead of fuzzy ones') }}</label>
     <label class="checkbox"><input type="checkbox" data-bind="checked: enableOctoPrintAnalyzer">{{ _('Enable OctoPrint\'s built-in analyzer (slow and unnecessary)') }}</label>
+    <label title="{{ _('Analyzing a file while heating should not affect performace.') }}"
+           class="checkbox"><input
+                              type="checkbox"
+                              data-bind="checked: allowAnalysisWhileHeating">{{ _('Allow analysis while heating (only takes effect after saving)') }}</label>
     <label title="{{ _('Analyzing a file while printing might cause poor printing performace.') }}"
            class="checkbox"><input
                               type="checkbox"

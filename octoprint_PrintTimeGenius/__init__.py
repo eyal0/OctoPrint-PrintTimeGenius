@@ -21,6 +21,7 @@ import pkg_resources
 from collections import defaultdict
 from .printer_config import PrinterConfig
 import psutil
+import collections
 
 def _interpolate(point, left, right):
   """Use the point to interpolate a value from left and right.  point should be a
@@ -145,6 +146,45 @@ class GeniusEstimator(PrintTimeEstimator):
       self._logger.error("Failed to estimate", exc_info=e)
       return (0, 'genius')
 
+def _allow_analysis(printer, settings):
+  """Returns true if we can analayze files currently, assuming that we are
+  printing.
+
+  This is run frequently so it shouldn't be too CPU intensive.
+
+  Returns true if allowAnalysisWhilePrinting is set.
+
+  Also returns true if allowAnalysisWhileHeating is set and there is a heater
+  that hasn't yet reached at least 5 degrees fewer than the target temperature.
+  Also, if none of the heaters have a target temperature more than 30C, allow
+  analysis.
+  """
+  if settings.get(["allowAnalysisWhilePrinting"]):
+    return True # Always allowed
+  if not settings.get(['allowAnalysisWhileHeating']):
+    # We don't allow while heating so no need to test all the temps below.
+    return False
+  if not printer._temps:
+    return True # We'll allow it if there are no temps yet.
+  all_temps = list(printer._temps)
+  if not all_temps:
+    return True # We'll allow it if there are no temps yet.
+  current_temp = all_temps[-1] # They are sorted so this is the most recent.
+  elements_being_heated = 0
+  for thermostat in current_temp.values():
+    if not isinstance(thermostat, collections.Mapping) or not 'actual' in thermostat or not 'target' in thermostat:
+      continue
+    if thermostat['target'] < 30:
+      # This element is targeted for less than room temperature so ignore it.
+      continue
+    elements_being_heated += 1
+    if thermostat['actual'] < thermostat['target'] - 5:
+      # At least one element isn't hot enough yet so we can keep analyzing.
+      return True
+  if not elements_being_heated:
+    return True # If not heaters are on, we're not printing anyway.
+  return False # All elements are hot enough to print.
+
 class GeniusAnalysisQueue(GcodeAnalysisQueue):
   """Generate an analysis to use for printing time remaining later."""
   def __init__(self, finished_callback, plugin):
@@ -153,7 +193,7 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
 
   def _do_abort(self, reenqueue=True):
     super(GeniusAnalysisQueue, self)._do_abort(reenqueue)
-    if self._plugin._settings.get(["allowAnalysisWhilePrinting"]):
+    if _allow_analysis(self._plugin._printer, self._plugin._settings):
       self._plugin._logger.info("Abort requested but will be ignored due to settings.")
 
   def compensate_analysis(self, analysis):
@@ -170,10 +210,10 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
         return
       print_history = [ph for ph in print_history
                        if (all(x in ph for x in ("firstFilamentPrintTime",
-                                                  "lastFilamentPrintTime",
-                                                  "payload",
-                                                  "analysisLastFilamentPrintTime",
-                                                  "analysisFirstFilamentPrintTime")) and
+                                                 "lastFilamentPrintTime",
+                                                 "payload",
+                                                 "analysisLastFilamentPrintTime",
+                                                 "analysisFirstFilamentPrintTime")) and
                             "time" in ph["payload"])]
       if not print_history:
         return
@@ -224,14 +264,14 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
   def _do_analysis(self, high_priority=False):
     self._aborted = False
     logger = self._plugin._logger
-    results = {}
+    results = {'analysisPending': True}
+    self._finished_callback(self._current, results)
     if self._plugin._settings.get(["enableOctoPrintAnalyzer"]):
       logger.info("Running built-in analysis.")
       try:
         results.update(super(GeniusAnalysisQueue, self)._do_analysis(high_priority))
       except AnalysisAborted as e:
-        logger.info("Probably starting printing, aborting built-in analysis.",
-                    exc_info=e)
+        logger.info("Probably starting printing, aborting built-in analysis.")
         raise # Reraise it
       logger.info("Result: {}".format(results))
       self._finished_callback(self._current, results)
@@ -261,7 +301,7 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
           else:
             p.nice(19)
         while sarge_job.commands[0].poll() is None:
-          if self._aborted and not self._plugin._settings.get(["allowAnalysisWhilePrinting"]):
+          if self._aborted and not _allow_analysis(self._plugin._printer, self._plugin._settings):
             for p in process.children(recursive=True) + [process]:
               p.terminate()
             sarge_job.close()
@@ -279,8 +319,7 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
         logger.info("Merged result: {}".format(results))
         self._finished_callback(self._current, results)
       except AnalysisAborted as e:
-        logger.info("Probably started printing, aborting: '{}'".format(command),
-                    exc_info=e)
+        logger.info("Probably started printing, aborting: '{}'".format(command))
         raise # Reraise it
       except Exception as e:
         logger.warning("Failed to run '{}'".format(command), exc_info=e)
@@ -288,6 +327,7 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
         if sarge_job:
           sarge_job.close()
     # Before we potentially modify the result from analysis, save them.
+    results.update({'analysisPending': False})
     try:
       if not all(x in results
                  for x in ["progress",
@@ -324,8 +364,8 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     self._current_history = {}
     dd = lambda: defaultdict(dd)
     self._current_config = PrinterConfig() # dict of timing-relevant config commands
-  ##~~ SettingsPlugin mixin
 
+  ##~~ SettingsPlugin mixin
   def get_settings_defaults(self):
     current_path = os.path.dirname(os.path.realpath(__file__))
     built_in_analyzers = [
@@ -351,6 +391,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
         "exactDurations": True,
         "enableOctoPrintAnalyzer": False,
         "allowAnalysisWhilePrinting": False,
+        "allowAnalysisWhileHeating": True,
         "print_history": [],
         "printer_config": []
     }
@@ -395,7 +436,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
   @octoprint.plugin.BlueprintPlugin.route("/analyse/<origin>/<path:path>", methods=["GET"])
   def analyze_file(self, origin, path):
     """Add a file to the analysis queue."""
-    if not self._settings.get(["allowAnalysisWhilePrinting"]) and self._printer.is_printing():
+    if self._printer.is_printing() and not _allow_analysis(self._printer, self._settings):
       self._file_manager._analysis_queue.pause()
     else:
       self._file_manager._analysis_queue.resume()
@@ -405,6 +446,13 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       return ""
     results = self._file_manager.analyse(origin, path)
     return ""
+
+  def unmark_all_pending(self, dest, all_files):
+    for k, v in all_files.iteritems():
+      if 'analysis' in v and 'analysisPending' in v['analysis'] and v['analysis']['analysisPending']:
+        self._file_manager.set_additional_metadata(dest, v['path'], 'analysis', {'analysisPending': False}, merge=True)
+      if 'children' in v:
+        self.unmark_all_pending(dest, v['children'])
 
   ##~~ StartupPlugin API
 
@@ -417,6 +465,12 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
 
     self._logger.addHandler(logging_handler)
     self._logger.propagate = False
+
+    # Unmark all pending analyses.
+    all_files = self._file_manager.list_files()
+    for dest in all_files.keys():
+      self.unmark_all_pending(dest, all_files[dest])
+
     # TODO: Remove the below after https://github.com/foosel/OctoPrint/pull/2723 is merged.
     self._file_manager.original_add_file = self._file_manager.add_file
     def new_add_file(destination, path, file_object, links=None, allow_overwrite=False, printer_profile=None, analysis=None, display=None):

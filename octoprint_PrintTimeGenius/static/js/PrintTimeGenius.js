@@ -91,6 +91,7 @@ $(function() {
       self.exactDurations = printTimeGeniusSettings.exactDurations;
       self.enableOctoPrintAnalyzer = printTimeGeniusSettings.enableOctoPrintAnalyzer;
       self.allowAnalysisWhilePrinting = printTimeGeniusSettings.allowAnalysisWhilePrinting;
+      self.allowAnalysisWhileHeating = printTimeGeniusSettings.allowAnalysisWhileHeating;
       self.print_history = printTimeGeniusSettings.print_history;
       // Overwrite the formatFuzzyPrintTime as needed.
       self.originalFormatFuzzyPrintTime = formatFuzzyPrintTime;
@@ -112,7 +113,9 @@ $(function() {
       self.originalGetSuccessClass = self.filesViewModel.getSuccessClass;
       self.filesViewModel.getSuccessClass = function(data) {
         let additional_css = "";
-        if (_.has(data, "gcodeAnalysis.progress")) {
+        if (_.get(data, "gcodeAnalysis.analysisPending", false)) {
+          additional_css = " print-time-genius-pending";
+        } else if (_.has(data, "gcodeAnalysis.progress")) {
           additional_css = " print-time-genius-after";
         }
         return self.originalGetSuccessClass(data) + additional_css;
