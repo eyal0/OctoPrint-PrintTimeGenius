@@ -2,23 +2,25 @@
 .print-time-genius:before { color: gold; content: "★"; visibility: visible; position: absolute;}
 .print-time-genius-after:after {
   color: gold; content: "★"; visibility: visible; position: absolute;
-  transform: scale(1.3, 1.3)
+  transform: scale(1.5, 1.5) translate(0, -1px);
+  transform-origin: left;
 }
 .print-time-genius-pending:after {
   color: gold; content: "★"; visibility: visible; position: absolute;
   animation-name: spinner;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
-  animation-duration: 0.5s;
+  animation-duration: 0.3s;
   animation-direction: alternate;
-  transform: scale(1.3, 1.3)
+  transform: scale(1.5, 1.5) translate(0, -1px);
+  transform-origin: left;
 }
 @keyframes spinner {
   from {
-    opacity: 0.2
+    opacity: 0.3
   }
   to {
-    opacity: 1
+    opacity: 0.9
   }
 }
 
