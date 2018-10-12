@@ -86,6 +86,10 @@ def process_slic3r_print_time_remaining(gcode_line):
     minutes_text = m.group(2)
     minutes_elapsed = float(minutes_text)
     global reverse_progress
+    if not reverse_progress:
+      # This is the first reverse progress so it is also the first filament.
+      global first_filament_filepos
+      first_filament_filepos = file_position
     reverse_progress.append([file_position, minutes_elapsed*60])
   return ret
 
@@ -164,6 +168,7 @@ def process_simplify3d_filament_volume(gcode_line):
 file_position = 0
 forward_progress = []
 reverse_progress = []
+first_filament_filepos = None
 def update(d, u):
   """Do deep updates of dict."""
   for k, v in u.iteritems():
@@ -217,6 +222,8 @@ def get_analysis_from_gcode(machinecode_path, parsers):
         [0, analysis['estimatedPrintTime']],
         [1, 0]]
     analysis['progress'].sort()
+  if first_filament_filepos:
+    analysis['firstFilament'] = first_filament_filepos / file_position
   return json.dumps(analysis)
 
 if __name__ == "__main__":
