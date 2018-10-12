@@ -1,5 +1,28 @@
 .print-time-genius { visibility: hidden}
 .print-time-genius:before { color: gold; content: "★"; visibility: visible; position: absolute;}
-.print-time-genius-after:after { color: gold; content: "★"; visibility: visible; position: absolute;}
+.print-time-genius-after:after {
+  color: gold; content: "★"; visibility: visible; position: absolute;
+  transform: scale(1.5, 1.5) translate(0, -1px);
+  transform-origin: left;
+}
+.print-time-genius-pending:after {
+  color: gold; content: "★"; visibility: visible; position: absolute;
+  animation-name: spinner;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-duration: 0.3s;
+  animation-direction: alternate;
+  transform: scale(1.5, 1.5) translate(0, -1px);
+  transform-origin: left;
+}
+@keyframes spinner {
+  from {
+    opacity: 0.3
+  }
+  to {
+    opacity: 0.9
+  }
+}
+
 .print-time-genius-table td,th { padding-left: 4px; padding-right: 4px; }
 .print-time-genius-table td { text-align: right; }
