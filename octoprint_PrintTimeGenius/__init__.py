@@ -21,6 +21,7 @@ import pkg_resources
 from collections import defaultdict
 from .printer_config import PrinterConfig
 import psutil
+import collections
 
 def _interpolate(point, left, right):
   """Use the point to interpolate a value from left and right.  point should be a
@@ -145,19 +146,44 @@ class GeniusEstimator(PrintTimeEstimator):
       self._logger.error("Failed to estimate", exc_info=e)
       return (0, 'genius')
 
-def _is_heating(printer, file_manager):
-  """Returns true if the printer is currently heating.  If we can't figure it out, returns false."""
-  try:
-    current_job_data = printer.get_current_job()
-    current_job_origin = current_job_data['file']['origin']
-    current_job_path = current_job_data['file']['path']
-    current_job_metadata = file_manager.get_metadata(current_job_origin, current_job_path)
-    current_job_heating_filepos = current_job_metadata["analysis"]["firstFilament"]
-    current_job_filesize = current_job_data['file']['size']
-    current_filepos = printer.get_file_position()['pos']
-    return current_filepos/current_job_filesize < current_job_heating_filepos
-  except Exception as e:
-    return False # If we can't figure it out, assume that we are printing.
+def _allow_analysis(printer, settings):
+  """Returns true if we can analayze files currently, assuming that we are
+  printing.
+
+  This is run frequently so it shouldn't be too CPU intensive.
+
+  Returns true if allowAnalysisWhilePrinting is set.
+
+  Also returns true if allowAnalysisWhileHeating is set and there is a heater
+  that hasn't yet reached at least 5 degrees fewer than the target temperature.
+  Also, if none of the heaters have a target temperature more than 30C, allow
+  analysis.
+  """
+  if settings.get(["allowAnalysisWhilePrinting"]):
+    return True # Always allowed
+  if not settings.get(['allowAnalysisWhileHeating']):
+    # We don't allow while heating so no need to test all the temps below.
+    return False
+  if not printer._temps:
+    return True # We'll allow it if there are no temps yet.
+  all_temps = list(printer._temps)
+  if not all_temps:
+    return True # We'll allow it if there are no temps yet.
+  current_temp = all_temps[-1] # They are sorted so this is the most recent.
+  elements_being_heated = 0
+  for thermostat in current_temp.values():
+    if not isinstance(thermostat, collections.Mapping) or not 'actual' in thermostat or not 'target' in thermostat:
+      continue
+    if thermostat['target'] < 30:
+      # This element is targeted for less than room temperature so ignore it.
+      continue
+    elements_being_heated += 1
+    if thermostat['actual'] < thermostat['target'] - 5:
+      # At least one element isn't hot enough yet so we can keep analyzing.
+      return True
+  if not elements_being_heated:
+    return True # If not heaters are on, we're not printing anyway.
+  return False # All elements are hot enough to print.
 
 class GeniusAnalysisQueue(GcodeAnalysisQueue):
   """Generate an analysis to use for printing time remaining later."""
@@ -167,10 +193,7 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
 
   def _do_abort(self, reenqueue=True):
     super(GeniusAnalysisQueue, self)._do_abort(reenqueue)
-    heating = _is_heating(self._plugin._printer, self._plugin._file_manager)
-    if heating and self._plugin._settings.get(["allowAnalysisWhileHeating"]):
-      self._plugin._logger.info("Abort requested but will be ignored until heating is done due to settings.")
-    elif not heating and self._plugin._settings.get(["allowAnalysisWhilePrinting"]):
+    if _allow_analysis(self._plugin._printer, self._plugin._settings):
       self._plugin._logger.info("Abort requested but will be ignored due to settings.")
 
   def compensate_analysis(self, analysis):
@@ -277,14 +300,11 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
           else:
             p.nice(19)
         while sarge_job.commands[0].poll() is None:
-          if self._aborted:
-            heating = _is_heating(self._plugin._printer, self._plugin._file_manager)
-            if ((heating and not self._plugin._settings.get(["allowAnalysisWhileHeating"])) or
-                (not heating and not self._plugin._settings.get(["allowAnalysisWhilePrinting"]))):
-              for p in process.children(recursive=True) + [process]:
-                p.terminate()
-              sarge_job.close()
-              raise AnalysisAborted(reenqueue=self._reenqueue)
+          if self._aborted and not _allow_analysis(self._plugin._printer, self._plugin._settings):
+            for p in process.children(recursive=True) + [process]:
+              p.terminate()
+            sarge_job.close()
+            raise AnalysisAborted(reenqueue=self._reenqueue)
           time.sleep(0.5)
         sarge_job.close()
         results_text = sarge_job.stdout.text
@@ -405,10 +425,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
   @octoprint.plugin.BlueprintPlugin.route("/analyse/<origin>/<path:path>", methods=["GET"])
   def analyze_file(self, origin, path):
     """Add a file to the analysis queue."""
-    heating = _is_heating(self._printer, self._file_manager)
-    if (self._printer.is_printing() and
-        ((heating and not self._settings.get(["allowAnalysisWhileHeating"])) or
-         (not heating and not self._settings.get(["allowAnalysisWhilePrinting"])))):
+    if self._printer.is_printing() and not _allow_analysis(self._printer, self._settings):
       self._file_manager._analysis_queue.pause()
     else:
       self._file_manager._analysis_queue.resume()
