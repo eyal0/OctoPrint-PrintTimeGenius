@@ -224,7 +224,8 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
   def _do_analysis(self, high_priority=False):
     self._aborted = False
     logger = self._plugin._logger
-    results = {}
+    results = {'analysisPending': True}
+    self._finished_callback(self._current, results)
     if self._plugin._settings.get(["enableOctoPrintAnalyzer"]):
       logger.info("Running built-in analysis.")
       try:
@@ -288,6 +289,7 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
         if sarge_job:
           sarge_job.close()
     # Before we potentially modify the result from analysis, save them.
+    results.update({'analysisPending': False})
     try:
       if not all(x in results
                  for x in ["progress",
@@ -324,8 +326,8 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     self._current_history = {}
     dd = lambda: defaultdict(dd)
     self._current_config = PrinterConfig() # dict of timing-relevant config commands
-  ##~~ SettingsPlugin mixin
 
+  ##~~ SettingsPlugin mixin
   def get_settings_defaults(self):
     current_path = os.path.dirname(os.path.realpath(__file__))
     built_in_analyzers = [
@@ -397,6 +399,13 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     results = self._file_manager.analyse(origin, path)
     return ""
 
+  def unmark_all_pending(self, dest, all_files):
+    for k, v in all_files.iteritems():
+      if 'analysis' in v and 'analysisPending' in v['analysis'] and v['analysis']['analysisPending']:
+        self._file_manager.set_additional_metadata(dest, v['path'], 'analysis', {'analysisPending': False}, merge=True)
+      if 'children' in v:
+        self.unmark_all_pending(dest, v['children'])
+
   ##~~ StartupPlugin API
 
   def on_startup(self, host, port):
@@ -408,6 +417,12 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
 
     self._logger.addHandler(logging_handler)
     self._logger.propagate = False
+
+    # Unmark all pending analyses.
+    all_files = self._file_manager.list_files()
+    for dest in all_files.keys():
+      self.unmark_all_pending(dest, all_files[dest])
+
     # TODO: Remove the below after https://github.com/foosel/OctoPrint/pull/2723 is merged.
     self._file_manager.original_add_file = self._file_manager.add_file
     def new_add_file(destination, path, file_object, links=None, allow_overwrite=False, printer_profile=None, analysis=None, display=None):
