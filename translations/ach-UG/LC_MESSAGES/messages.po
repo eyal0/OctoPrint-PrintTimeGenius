@@ -1,0 +1,93 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: octoprint-printtimegenius\n"
+"Report-Msgid-Bugs-To: i18n@octoprint.org\n"
+"POT-Creation-Date: 2018-10-18 13:56-0400\n"
+"PO-Revision-Date: 2018-10-18 20:41\n"
+"Last-Translator: eyal0 <eyalsoha@gmail.com>\n"
+"Language-Team: Acholi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.6.0\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Generator: crowdin.com\n"
+"X-Crowdin-Project: octoprint-printtimegenius\n"
+"X-Crowdin-Language: ach\n"
+"X-Crowdin-File: /master/translations/messages.pot\n"
+"Language: ach_UG\n"
+
+#: octoprint_PrintTimeGenius/static/js/PrintTimeGenius.js:43
+msgid "Based on a line-by-line preprocessing of the gcode (good accuracy)"
+msgstr "crwdns2:0crwdne2:0"
+
+#: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:3
+msgid "General options"
+msgstr "crwdns4:0crwdne4:0"
+
+#: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:4
+msgid "Display precise durations instead of fuzzy ones"
+msgstr "crwdns6:0crwdne6:0"
+
+#: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:5
+msgid "Enable OctoPrint's built-in analyzer (slow and unnecessary)"
+msgstr "crwdns8:0crwdne8:0"
+
+#: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:6
+msgid "Analyzing a file while heating should not affect performace."
+msgstr "crwdns10:0crwdne10:0"
+
+#: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:9
+msgid "Allow analysis while heating (only takes effect after saving)"
+msgstr "crwdns12:0crwdne12:0"
+
+#: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:10
+msgid "Analyzing a file while printing might cause poor printing performace."
+msgstr "crwdns14:0crwdne14:0"
+
+#: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:13
+msgid "Allow analysis while printing (only takes effect after saving)"
+msgstr "crwdns16:0crwdne16:0"
+
+#: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:14
+#: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:43
+msgid "Analyzers"
+msgstr "crwdns18:0crwdne18:0"
+
+#: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:20
+#: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:31
+msgid "Analyze"
+msgstr "crwdns20:0crwdne20:0"
+
+#: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:44
+msgid "The default analyzers are the suggested settings for all users"
+msgstr "crwdns22:0crwdne22:0"
+
+#: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:45
+msgid "Reset analyzers to default"
+msgstr "crwdns24:0crwdne24:0"
+
+#: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:48
+msgid "Description"
+msgstr "crwdns26:0crwdne26:0"
+
+#: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:49
+msgid "Command"
+msgstr "crwdns28:0crwdne28:0"
+
+#: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:50
+msgid "Enabled"
+msgstr "crwdns30:0crwdne30:0"
+
+#: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:69
+msgid "Debug"
+msgstr "crwdns32:0crwdne32:0"
+
+#: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:70
+msgid "Debug Analysis"
+msgstr "crwdns34:0crwdne34:0"
+
+#: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:73
+msgid "Debug Estimates"
+msgstr "crwdns36:0crwdne36:0"
+
