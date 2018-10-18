@@ -1,5 +1,7 @@
 # OctoPrint-PrintTimeGenius
 
+[![Crowdin](https://d322cqt584bo4o.cloudfront.net/octoprint-printtimegenius/localized.svg)](https://crowdin.com/project/octoprint-printtimegenius)
+
 **Provide better estimations on print time in OctoPrint.**
 
 In the chart, we see that the print time remaining is never off by more than 3 minutes using the GeniusEstimator, under 3%. The estimator built-in to OctoPrint is off by 19 minutes at worst, which is a 16% error.
