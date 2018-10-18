@@ -1,5 +1,6 @@
 .print-time-genius { visibility: hidden}
 .print-time-genius:before { color: gold; content: "★"; visibility: visible; position: absolute;}
+.print-time-genius-after { position: relative; }
 .print-time-genius-after:after {
   color: gold; content: "★"; visibility: visible; position: absolute;
   transform: scale(1.5, 1.5) translate(0, -1px);
