@@ -1,0 +1,3 @@
+files:
+  - source: '**.pot'
+    translation: '%locale%/%file_name%.po'
