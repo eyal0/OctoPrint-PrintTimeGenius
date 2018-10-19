@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: octoprint-printtimegenius\n"
 "Report-Msgid-Bugs-To: i18n@octoprint.org\n"
 "POT-Creation-Date: 2018-10-18 13:56-0400\n"
-"PO-Revision-Date: 2018-10-18 20:41\n"
+"PO-Revision-Date: 2018-10-19 18:12\n"
 "Last-Translator: eyal0 <eyalsoha@gmail.com>\n"
 "Language-Team: Italian\n"
 "MIME-Version: 1.0\n"
@@ -19,75 +19,75 @@ msgstr ""
 
 #: octoprint_PrintTimeGenius/static/js/PrintTimeGenius.js:43
 msgid "Based on a line-by-line preprocessing of the gcode (good accuracy)"
-msgstr "Basato su una pre-elaborazione riga-per-riga del gcode (buona precisione)"
+msgstr "Basato su una pre-elaborazione linea-per-linea del gcode (buona accuratezza)"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:3
 msgid "General options"
-msgstr ""
+msgstr "Opzioni generali"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:4
 msgid "Display precise durations instead of fuzzy ones"
-msgstr ""
+msgstr "Mostra durate precise invece di quelle arrotondate"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:5
 msgid "Enable OctoPrint's built-in analyzer (slow and unnecessary)"
-msgstr ""
+msgstr "Attiva l'analizzatore nativo di OctoPrint (lento e inutile)"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:6
 msgid "Analyzing a file while heating should not affect performace."
-msgstr ""
+msgstr "Analizzare un file durante il riscaldamento non dovrebbe influire sulla performance."
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:9
 msgid "Allow analysis while heating (only takes effect after saving)"
-msgstr ""
+msgstr "Permetti l'analisi durante il riscaldamento (ha effetto solo dopo il salvataggio)"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:10
 msgid "Analyzing a file while printing might cause poor printing performace."
-msgstr ""
+msgstr "Analizzare un file durante la stampa potrebbe ridurre la performance di stampa."
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:13
 msgid "Allow analysis while printing (only takes effect after saving)"
-msgstr ""
+msgstr "Permetti l'analisi durante la stampa (ha effetto solo dopo il salvataggio)"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:14
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:43
 msgid "Analyzers"
-msgstr ""
+msgstr "Analizzatori"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:20
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:31
 msgid "Analyze"
-msgstr ""
+msgstr "Analizza"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:44
 msgid "The default analyzers are the suggested settings for all users"
-msgstr ""
+msgstr "Gli analizzatori di default sono le impostazioni suggerite per tutti gli utenti"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:45
 msgid "Reset analyzers to default"
-msgstr ""
+msgstr "Reimposta gli analizzatori di default"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:48
 msgid "Description"
-msgstr ""
+msgstr "Descrizione"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:49
 msgid "Command"
-msgstr ""
+msgstr "Comando"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:50
 msgid "Enabled"
-msgstr ""
+msgstr "Attivo"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:69
 msgid "Debug"
-msgstr ""
+msgstr "Debug"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:70
 msgid "Debug Analysis"
-msgstr ""
+msgstr "Debug dell'analisi"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:73
 msgid "Debug Estimates"
-msgstr ""
+msgstr "Debug delle stime"
 
