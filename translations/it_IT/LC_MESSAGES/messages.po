@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  octoprint-printtimegenius\n"
 "Report-Msgid-Bugs-To: i18n@octoprint.org\n"
-"POT-Creation-Date: 2018-10-22 11:01-0400\n"
+"POT-Creation-Date: 2018-10-22 11:21-0400\n"
 "PO-Revision-Date: 2018-10-19 18:12+0000\n"
 "Last-Translator: eyal0 <eyalsoha@gmail.com>\n"
 "Language: it_IT\n"
@@ -13,6 +13,20 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.6.0\n"
+
+#: octoprint_PrintTimeGenius/__init__.py:373
+msgid "All gcode analyzers (usually not as good as marlin-calc)"
+msgstr ""
+
+#: octoprint_PrintTimeGenius/__init__.py:377
+msgid ""
+"Marlin firmware simulation (replaces Octoprint built-in, faster and more "
+"accurate)"
+msgstr ""
+
+#: octoprint_PrintTimeGenius/__init__.py:381
+msgid "Use Slic3r PE M73 time remaining"
+msgstr ""
 
 #: octoprint_PrintTimeGenius/static/js/PrintTimeGenius.js:43
 msgid "Based on a line-by-line preprocessing of the gcode (good accuracy)"
@@ -201,4 +215,7 @@ msgid ""
 "Remove row, if this is an atypical sample and shouldn't be used for "
 "future compensation"
 msgstr ""
+
+#~ msgid "All gcode analyzers (usually not as good as Marlin calc)"
+#~ msgstr ""
 
