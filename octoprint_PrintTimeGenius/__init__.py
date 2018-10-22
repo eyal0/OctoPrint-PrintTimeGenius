@@ -7,6 +7,7 @@ import octoprint.filemanager.storage
 from octoprint.printer.estimation import PrintTimeEstimator
 from octoprint.filemanager.analysis import GcodeAnalysisQueue
 from octoprint.filemanager.analysis import AnalysisAborted
+from flask_babel import gettext
 import logging
 import bisect
 from pkg_resources import parse_version
@@ -369,15 +370,15 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
   def get_settings_defaults(self):
     current_path = os.path.dirname(os.path.realpath(__file__))
     built_in_analyzers = [
-        ("All gcode analyzers (usually not as good as Marlin calc)",
+        (gettext("All gcode analyzers (usually not as good as marlin-calc)"),
          '"{{python}}" "{analyzer}" "{{{{gcode}}}}"'.format(
              analyzer=os.path.join(current_path, "analyzers/analyze_gcode_comments.py")),
          False),
-        ("Marlin firmware simulation (replaces Octoprint built-in, faster and more accurate)",
+        (gettext("Marlin firmware simulation (replaces Octoprint built-in, faster and more accurate)"),
          '"{{python}}" "{analyzer}" marlin-calc "{{{{gcode}}}}" "{{{{mcodes}}}}"'.format(
              analyzer=os.path.join(current_path, "analyzers/analyze_progress.py")),
          True),
-        ("Use Slic3r PE M73 time remaining",
+        (gettext("Use Slic3r PE M73 time remaining"),
          '"{{python}}" "{analyzer}" "{{{{gcode}}}}" --parsers slic3r_pe_print_time slic3r_pe_print_time_remaining'.format(
              analyzer=os.path.join(current_path, "analyzers/analyze_gcode_comments.py")),
          False),
