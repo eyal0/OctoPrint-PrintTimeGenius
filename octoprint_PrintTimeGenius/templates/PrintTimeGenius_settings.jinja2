@@ -10,7 +10,7 @@
     <label title="{{ _('Analyzing a file while printing might cause poor printing performace.') }}"
            class="checkbox"><input
                               type="checkbox"
-                              data-bind="checked: allowAnalysisWhilePrinting">{{ _('Allow analysis while printing (only takes effect after saving)') }}<span class="label label-important">May slow down your printer</span></label>
+                              data-bind="checked: allowAnalysisWhilePrinting">{{ _('Allow analysis while printing (only takes effect after saving)') }}<span class="label label-important">{{ _('May slow down your printer') }}</span></label>
     <h3>{{ _('Analyzers') }}</h3>
     <!-- ko foreach: analyzers -->
       <label class="checkbox">
@@ -18,12 +18,12 @@
       </label>
     <!-- /ko -->
     <h3>{{ _('Analyze') }}</h3>
-    You can use this to run an analysis right now and also look at the output to debug problems.
+    {{ _('You can use this to run an analysis right now and also look at the output to debug problems.') }}
     <div class="row-fluid">
-      <label class="span9">File to analyze:
+      <label class="span9">{{ _('File to analyze:') }}
         <select class="span9" id="stlviewer_file_list" data-bind="options: FileList,
                                                     optionsText: 'path',
-                                                    optionsCaption: 'Choose...',
+                                                    optionsCaption: "{{ _('Choose...') }}",
                                                     value: selectedGcode,
                                                     event: { }">
         </select>
@@ -35,7 +35,7 @@
       <div>
         <small>
           <a href="#" class="muted" onclick="$(this).children().toggleClass('fa-caret-right fa-caret-down').parent().parent().parent().next().slideToggle('fast')">
-            <i class="fa fa-caret-down"></i> Advanced
+            <i class="fa fa-caret-down"></i> {{ _('Advanced') }}
           </a>
         </small>
       </div>
@@ -57,22 +57,23 @@
               <input type="checkbox" style="margin-left: 20px" data-bind="checked: enabled">
             </div>
             <div class="span2">
-              <a title="Remove analyzer" class="btn btn-danger" data-bind="click: $parent.removeAnalyzer"><i class="fa fa-trash-o"></i></a>
+              <a title="{{ _('Remove analyzer') }}" class="btn btn-danger" data-bind="click: $parent.removeAnalyzer"><i class="fa fa-trash-o"></i></a>
             </div>
           </div>
         </div>
         <div class="row-fluid">
           <div class="offset10 span2" style="margin-top: 5px">
-            <a title="Add analyzer" class="btn btn-primary" data-bind="click: addAnalyzer"><i class="fa fa-plus"></i></a>
+            <a title="{{ _('Add analyzer') }}" class="btn btn-primary" data-bind="click: addAnalyzer"><i class="fa fa-plus"></i></a>
           </div>
         </div>
         <h3>{{ _('Debug') }}</h3>
         <h4>{{ _('Debug Analysis') }}</h4>
-        Analyze a file and then <a href="downloads/logs/plugin_PrintTimeGenius_engine.log">download the log</a>.
-        If you see errors, <a href="https://github.com/eyal0/OctoPrint-PrintTimeGenius/issues">report them</a>.
+        {{ _('Analyze a file and then <a href="downloads/logs/plugin_PrintTimeGenius_engine.log">download the log</a>.
+        If you see errors, <a href="https://github.com/eyal0/OctoPrint-PrintTimeGenius/issues">report them</a>.') }}
         <h4>{{ _('Debug Estimates') }}</h4>
-        <p><span class="label label-important">May slow down your printer</span>
-          If you want to make a graph of the print time estimate and compare with OctoPrint's built-in estimates:
+        <p><span class="label label-important">{{ _('May slow down your printer') }}</span>
+          /// Only translate the text, not the HTML!
+          {{ _('If you want to make a graph of the print time estimate and compare with OctoPrint's built-in estimates:
           <ol>
             <li>In settings, go to Logging.</li>
             <li>Set "octoprint.plugins.PrintTimeGenius" level to "DEBUG".</li>
@@ -83,24 +84,24 @@
         <p>
           Now print something and the log will fill with a <a href="https://en.wikipedia.org/wiki/Comma-separated_values">csv</a>.
           <a href="downloads/logs/plugin_PrintTimeGenius_engine.log">Download the log</a>, remove unnecessary lines, and import to a spreadsheet.
-        </p>
-        <h3>Compensation values</h3>
+        </p>') }}
+        <h3>{{ _('Compensation values') }}</h3>
         <table class="print-time-genius-table" style="border: 2px solid black;">
           <thead style="border: 1px solid black;">
             <tr>
-              <th style="border-left: 1px black solid; border-right: 1px black solid;" colspan=4>Actual</th>
-              <th style="border-left: 1px black solid; border-right: 1px black solid;" colspan=3>Predicted</th>
-              <th style="border-left: 1px black solid; border-right: 1px black solid;" colspan=1>Compensated</th>
+              <th style="border-left: 1px black solid; border-right: 1px black solid;" colspan=4>{{ _('Actual') }}</th>
+              <th style="border-left: 1px black solid; border-right: 1px black solid;" colspan=3>{{ _('Predicted') }}</th>
+              <th style="border-left: 1px black solid; border-right: 1px black solid;" colspan=1>{{ _('Compensated') }}</th>
             </tr>
             <tr>
-              <th style="border-left: 1px black solid;">Heating</th>
-              <th>Extruding</th>
-              <th>Cooling</th>
-              <th style="border-right: 1px black solid;">Total</th>
-              <th style="border-left: 1px black solid;">Heating</th>
-              <th>Extruding</th>
-              <th style="border-right: 1px black solid;">Cooling</th>
-              <th style="border-left: 1px black solid; border-right: 1px black solid;">Total</th>
+              <th style="border-left: 1px black solid;">{{ _('Heating') }}</th>
+              <th>{{ _('Extruding') }}</th>
+              <th>{{ _('Cooling') }}</th>
+              <th style="border-right: 1px black solid;">{{ _('Total') }}</th>
+              <th style="border-left: 1px black solid;">{{ _('Heating') }}</th>
+              <th>{{ _('Extruding') }}</th>
+              <th style="border-right: 1px black solid;">{{ _('Cooling') }}</th>
+              <th style="border-left: 1px black solid; border-right: 1px black solid;">{{ _('Total') }}</th>
             </tr>
           </thead>
           <tbody data-bind="foreach: print_history">
@@ -132,7 +133,7 @@
                              _.has($data, 'compensatedPrintTime') ?
                              compensatedPrintTime().toFixed(1) : ''"></td>
               <td>
-                <a title="Remove row, if this is an atypical sample and shouldn't be used for future compensation" class="btn btn-danger" data-bind="click: $parent.removePrintHistoryRow"><i class="fa fa-trash-o"></i></a>
+                <a title="{{ _('Remove row, if this is an atypical sample and shouldn't be used for future compensation') }}" class="btn btn-danger" data-bind="click: $parent.removePrintHistoryRow"><i class="fa fa-trash-o"></i></a>
               </td>
             </tr>
           </tbody>
