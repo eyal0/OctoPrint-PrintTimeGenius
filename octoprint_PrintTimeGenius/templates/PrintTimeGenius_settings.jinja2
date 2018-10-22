@@ -72,8 +72,8 @@
         If you see errors, <a href="https://github.com/eyal0/OctoPrint-PrintTimeGenius/issues">report them</a>.') }}
         <h4>{{ _('Debug Estimates') }}</h4>
         <p><span class="label label-important">{{ _('May slow down your printer') }}</span>
-          /// Only translate the text, not the HTML!
-          {{ _('If you want to make a graph of the print time estimate and compare with OctoPrint's built-in estimates:
+          <!-- Only translate the text, not the HTML! -->
+          {{ _('If you want to make a graph of the print time estimate and compare with OctoPrint\'s built-in estimates:
           <ol>
             <li>In settings, go to Logging.</li>
             <li>Set "octoprint.plugins.PrintTimeGenius" level to "DEBUG".</li>
@@ -133,7 +133,7 @@
                              _.has($data, 'compensatedPrintTime') ?
                              compensatedPrintTime().toFixed(1) : ''"></td>
               <td>
-                <a title="{{ _('Remove row, if this is an atypical sample and shouldn't be used for future compensation') }}" class="btn btn-danger" data-bind="click: $parent.removePrintHistoryRow"><i class="fa fa-trash-o"></i></a>
+                <a title="{{ _('Remove row, if this is an atypical sample and shouldn\'t be used for future compensation') }}" class="btn btn-danger" data-bind="click: $parent.removePrintHistoryRow"><i class="fa fa-trash-o"></i></a>
               </td>
             </tr>
           </tbody>
