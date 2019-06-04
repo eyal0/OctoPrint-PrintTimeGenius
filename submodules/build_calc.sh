@@ -7,5 +7,5 @@ git submodule update --remote --recursive
 popd
 pushd "${SCRIPTPATH}/Marlin/Marlin"
 scons -i -j 10 || true
-cp -f */marlin-calc.* "${SCRIPTPATH}/../octoprint_PrintTimeGenius/analyzers"
+cp -f out/*/marlin-calc.* "${SCRIPTPATH}/../octoprint_PrintTimeGenius/analyzers"
 popd
