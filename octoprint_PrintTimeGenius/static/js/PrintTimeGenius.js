@@ -11,7 +11,7 @@ $(function() {
     self.settingsViewModel = parameters[0];
     self.printerStateViewModel = parameters[1];
     self.filesViewModel = parameters[2];
-    self.selectedGcode = ko.observable();
+    self.selectedGcodes = ko.observable();
 
     // Overwrite the printTimeLeftOriginString function
     ko.extenders.addGenius = function(target, option) {
@@ -72,17 +72,23 @@ $(function() {
 
     self.FileList = ko.pureComputed(function() {
       return self.recurseFiles(self.filesViewModel.allItems()).slice()
-          .sort(function(a,b) {return a.path.localeCompare(b.path);});
+          .sort(function(a,b) {
+            if (_.has(a, "gcodeAnalysis.progress") !=
+                _.has(b, "gcodeAnalysis.progress")) {
+              return (_.has(a, "gcodeAnalysis.progress") -
+                      _.has(b, "gcodeAnalysis.progress"));
+            }
+            return a.path.localeCompare(b.path);
+          });
     });
 
     self.analyzeCurrentFile = function () {
-      let item = self.selectedGcode();
-      if (!item) {
-        return;
+      let items = self.selectedGcodes();
+      for (let item of items) {
+        let gcode = item["origin"] + "/" + item["path"];
+        url = OctoPrint.getBlueprintUrl("PrintTimeGenius") + "analyze/" + gcode;
+        OctoPrint.get(url)
       }
-      let gcode = item["origin"] + "/" + item["path"];
-      url = OctoPrint.getBlueprintUrl("PrintTimeGenius") + "analyze/" + gcode;
-      OctoPrint.get(url)
     }
 
     self.onBeforeBinding = function() {

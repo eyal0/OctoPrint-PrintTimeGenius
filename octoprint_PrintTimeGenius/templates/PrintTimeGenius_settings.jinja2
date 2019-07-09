@@ -20,12 +20,20 @@
     <h3>{{ _('Analyze') }}</h3>
     {{ _('You can use this to run an analysis right now and also look at the output to debug problems.') }}
     <div class="row-fluid">
-      <label class="span9">{{ _('File to analyze:') }}
-        <select class="span9" id="stlviewer_file_list" data-bind="options: FileList,
-                                                    optionsText: 'path',
-                                                    optionsCaption: '{{ _('Choose...') }}',
-                                                    value: selectedGcode,
-                                                    event: { }">
+      <label class="span9">{{ _('Files to analyze:') }}
+        <select class="span9" id="stlviewer_file_list" multiple="true"
+                data-bind="options: FileList,
+                           optionsText: function(item) {
+                             if(item.gcodeAnalysis.progress) {
+                               return item.path + ' ★';
+                             } else if(item.gcodeAnalysis.analysisPending) {
+                               return item.path + ' ⌛';
+                             } else {
+                               return item.path;
+                             }
+                           },
+                           selectedOptions: selectedGcodes,
+                           event: { }">
         </select>
       </label>
       <button class="btn" data-bind="event: { click: analyzeCurrentFile }">{{ _('Analyze') }}</button>
