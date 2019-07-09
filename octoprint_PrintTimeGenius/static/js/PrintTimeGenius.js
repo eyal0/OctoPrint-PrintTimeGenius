@@ -71,7 +71,8 @@ $(function() {
     }
 
     self.FileList = ko.pureComputed(function() {
-      return self.recurseFiles(self.filesViewModel.allItems());
+      return self.recurseFiles(self.filesViewModel.allItems()).slice()
+          .sort(function(a,b) {return a.path.localeCompare(b.path);});
     });
 
     self.analyzeCurrentFile = function () {
