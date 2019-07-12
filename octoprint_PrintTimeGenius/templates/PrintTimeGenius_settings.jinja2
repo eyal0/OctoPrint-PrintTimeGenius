@@ -24,9 +24,9 @@
         <select class="span9" id="stlviewer_file_list" multiple="true"
                 data-bind="options: FileList,
                            optionsText: function(item) {
-                             if(item.gcodeAnalysis.progress) {
+                             if(_.has(item, 'gcodeAnalysis.progress')) {
                                return item.path + ' ★';
-                             } else if(item.gcodeAnalysis.analysisPending) {
+                             } else if(_.has(item, 'gcodeAnalysis.analysisPending')) {
                                return item.path + ' ⌛';
                              } else {
                                return item.path;
