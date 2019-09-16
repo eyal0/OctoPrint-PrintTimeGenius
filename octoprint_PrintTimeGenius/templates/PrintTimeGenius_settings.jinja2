@@ -19,7 +19,7 @@
     <!-- /ko -->
     <h3>{{ _('Analyze') }}</h3>
     {{ _('You can use this to run an analysis right now and also look at the output to debug problems.') }}
-    <div class="row-fluid">
+    <div class="row-fluid" data-bind="if: filesViewModel.allItems()">
       <label class="span9">{{ _('Files to analyze:') }}
         <select class="span9" id="stlviewer_file_list" multiple="true"
                 data-bind="options: FileList,
