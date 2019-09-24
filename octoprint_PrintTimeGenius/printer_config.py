@@ -134,7 +134,8 @@ class PrinterConfig(object):
                                     (["M207"], "M", "MFSWZ"),
                                     (["M208"], "M", "MFRSW"),
                                     (["M220"], "M", "MS"),
-                                    (["M221"], "MT", "MTS")]:
+                                    (["M221"], "MT", "MTS"),
+                                    (["M900"], "M", "K")]:
       if mcode in mcodes:
         new_lines = []
         for line in self.lines:
