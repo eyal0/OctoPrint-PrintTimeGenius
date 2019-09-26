@@ -112,6 +112,12 @@ class PrinterConfig(object):
   'M200 D1.75\\nM200 D'
   >>> p += "M200 D0 "; str(p)
   'M200 D1.75\\nM200 D0'
+  >>> p += "M205 X1 Y2 Z3"; str(p)
+  'M200 D1.75\\nM200 D0\\nM205 X1 Y2 Z3'
+  >>> p += "M900 K12 J1"; str(p)
+  'M200 D1.75\\nM200 D0\\nM205 X1 Y2 Z3\\nM900 K12'
+  >>> p += "M900 K0 Q10"; str(p)
+  'M200 D1.75\\nM200 D0\\nM205 X1 Y2 Z3\\nM900 K0'
 
   >>> p = PrinterConfig()
   >>> p += "M204 X1"; str(p)
@@ -134,7 +140,8 @@ class PrinterConfig(object):
                                     (["M207"], "M", "MFSWZ"),
                                     (["M208"], "M", "MFRSW"),
                                     (["M220"], "M", "MS"),
-                                    (["M221"], "MT", "MTS")]:
+                                    (["M221"], "MT", "MTS"),
+                                    (["M900"], "M", "MK")]:
       if mcode in mcodes:
         new_lines = []
         for line in self.lines:
