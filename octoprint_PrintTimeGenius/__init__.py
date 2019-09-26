@@ -434,7 +434,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       MAX_HISTORY_ITEMS = 5
       del print_history[MAX_HISTORY_ITEMS:]
       self._settings.set(["print_history"], print_history)
-      self._settings.save()
+      self.save_settings()
 
   @octoprint.plugin.BlueprintPlugin.route("/analyze/<origin>/<path:path>", methods=["GET"]) # Different spellings
   @octoprint.plugin.BlueprintPlugin.route("/analyse/<origin>/<path:path>", methods=["GET"])
@@ -470,6 +470,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     self._logger.addHandler(logging_handler)
     self._logger.propagate = False
 
+    self._logger.info("Starting PrintTimeGenius")
     # Unmark all pending analyses.
     all_files = self._file_manager.list_files()
     for dest in all_files.keys():
@@ -490,10 +491,19 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     for line in self._settings.get(["printer_config"]):
       self._current_config += line
 
+  def save_settings(self):
+    self._logger.info("Saving settings to config.yaml")
+    try:
+      success = self._settings.save() # This might also save settings that we didn't intend to save...
+      self._logger.info("Was saving needed? " + str(success))
+    except:
+      self._logger.exception("Save settings failed")
+
   ##~~ ShutdownPlugin API
 
   def on_shutdown(self):
-    self._settings.save() # This might also save settings that we didn't intend to save...
+    self._logger.info("Shutting down")
+    self.save_settings()
 
   ##~~ AssetPlugin mixin
 
