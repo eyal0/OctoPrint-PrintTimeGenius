@@ -18,6 +18,7 @@ import time
 import os
 import sys
 import types
+import yaml
 import pkg_resources
 from collections import defaultdict
 from .printer_config import PrinterConfig
@@ -204,9 +205,15 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
     Modifies the analysis in place.
     """
     try:
-      if not self._plugin._settings.has(["print_history"]):
-        return
-      print_history = self._plugin._settings.get(["print_history"])
+      print_history = None
+      print_history_path = os.path.join(self._plugin.get_plugin_data_folder(),
+                                        "print_history.yaml")
+      try:
+        with open(print_history_path, "r") as print_history_stream:
+          data = yaml.safe_load(print_history_stream)
+          print_history = data["print_history"]
+      except:
+        logger.exception("Load print_history.yaml failed")
       if not print_history:
         return
       print_history = [ph for ph in print_history
@@ -369,6 +376,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     dd = lambda: defaultdict(dd)
     self._current_config = PrinterConfig() # dict of timing-relevant config commands
 
+
   ##~~ SettingsPlugin mixin
   def get_settings_defaults(self):
     current_path = os.path.dirname(os.path.realpath(__file__))
@@ -396,7 +404,6 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
         "enableOctoPrintAnalyzer": False,
         "allowAnalysisWhilePrinting": False,
         "allowAnalysisWhileHeating": True,
-        "print_history": [],
         "printer_config": []
     }
 
@@ -413,10 +420,16 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     """
     if event == "PrintDone":
       # Store the details and also the timestamp.
-      if not self._settings.has(["print_history"]):
-        print_history = []
-      else:
-        print_history = self._settings.get(["print_history"])
+      print_history = []
+      print_history_path = os.path.join(self.get_plugin_data_folder(),
+                                        "print_history.yaml")
+      data = {}
+      try:
+        with open(print_history_path, "r") as print_history_stream:
+          data = yaml.safe_load(print_history_stream) or {}
+          print_history = data["print_history"]
+      except:
+        self._logger.exception("Load print_history.yaml failed")
       metadata = self._file_manager.get_metadata(payload["origin"], payload["path"])
       if not "analysis" in metadata or not "analysisPrintTime" in metadata["analysis"]:
         return
@@ -433,8 +446,13 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       print_history.sort(key=lambda x: x["timestamp"], reverse=True)
       MAX_HISTORY_ITEMS = 5
       del print_history[MAX_HISTORY_ITEMS:]
-      self._settings.set(["print_history"], print_history)
-      self.save_settings()
+      data['print_history'] = print_history
+      data['version'] = self._plugin_version
+      try:
+        with open(print_history_path, "w") as print_history_stream:
+          yaml.safe_dump(data, print_history_stream)
+      except:
+        self._logger.exception("Save print_history.yaml failed")
 
   @octoprint.plugin.BlueprintPlugin.route("/analyze/<origin>/<path:path>", methods=["GET"]) # Different spellings
   @octoprint.plugin.BlueprintPlugin.route("/analyse/<origin>/<path:path>", methods=["GET"])
