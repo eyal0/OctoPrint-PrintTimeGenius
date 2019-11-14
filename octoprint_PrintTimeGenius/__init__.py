@@ -19,6 +19,7 @@ import os
 import sys
 import types
 import yaml
+import flask
 import pkg_resources
 from collections import defaultdict
 from .printer_config import PrinterConfig
@@ -410,6 +411,31 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
   @octoprint.plugin.BlueprintPlugin.route("/get_settings_defaults", methods=["GET"])
   def get_settings_defaults_as_string(self):
     return json.dumps(self.get_settings_defaults())
+
+  @octoprint.plugin.BlueprintPlugin.route("/print_history", methods=["POST", "GET"])
+  def print_history_request(self):
+    print_history_path = os.path.join(self.get_plugin_data_folder(),
+                                      "print_history.yaml")
+    data = None
+    if flask.request.method == "GET":
+      print("got a get")
+      try:
+        with open(print_history_path, "r") as print_history_stream:
+          data = yaml.safe_load(print_history_stream)
+      except:
+        self._logger.exception("Load print_history.yaml failed")
+      return json.dumps(data)
+    elif flask.request.method == "POST":
+      print("Got a post of")
+      print(flask.request.get_json())
+      try:
+        data = json.loads(flask.request.data)
+        with open(print_history_path, "w") as print_history_stream:
+          yaml.safe_dump(data, print_history_stream)
+      except:
+        self._logger.exception("Save print_history.yaml failed")
+        abort()
+      return flask.make_response("", 200)
 
   ##~~ EventHandlerPlugin API
   def on_event(self, event, payload):
