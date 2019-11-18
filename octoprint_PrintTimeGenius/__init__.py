@@ -377,7 +377,6 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     dd = lambda: defaultdict(dd)
     self._current_config = PrinterConfig() # dict of timing-relevant config commands
 
-
   ##~~ SettingsPlugin mixin
   def get_settings_defaults(self):
     current_path = os.path.dirname(os.path.realpath(__file__))
@@ -418,7 +417,6 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
                                       "print_history.yaml")
     data = None
     if flask.request.method == "GET":
-      print("got a get")
       try:
         with open(print_history_path, "r") as print_history_stream:
           data = yaml.safe_load(print_history_stream)
@@ -426,8 +424,6 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
         logger.exception("Load print_history.yaml failed")
       return json.dumps(data)
     elif flask.request.method == "POST":
-      print("Got a post of")
-      print(flask.request.get_json())
       try:
         data = json.loads(flask.request.data)
         with open(print_history_path, "w") as print_history_stream:
