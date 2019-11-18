@@ -404,7 +404,6 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
         "enableOctoPrintAnalyzer": False,
         "allowAnalysisWhilePrinting": False,
         "allowAnalysisWhileHeating": True,
-        "printer_config": []
     }
 
   @octoprint.plugin.BlueprintPlugin.route("/get_settings_defaults", methods=["GET"])
@@ -528,8 +527,17 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
         self.old_on_comm(*args, **kwargs)
         self._create_estimator()
       self._printer.on_comm_file_selected = types.MethodType(new_on_comm, self._printer)
-    for line in self._settings.get(["printer_config"]):
-      self._current_config += line
+
+    # Get printer_config from printer_config.yaml
+    printer_config_path = os.path.join(self.get_plugin_data_folder(),
+                                       "printer_config.yaml")
+    try:
+      with open(printer_config_path, "r") as printer_config_stream:
+        data = yaml.safe_load(printer_config_stream)
+        for line in data["printer_config"]:
+          self._current_config += line
+    except:
+      self._logger.exception("Load printer_config.yaml failed")
 
   def save_settings(self):
     self._logger.info("Saving settings to config.yaml")
@@ -582,9 +590,31 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     """Extract print config from the line."""
     self._current_config += line
     new_config_as_list = self._current_config.as_list()
-    if new_config_as_list != self._settings.get(["printer_config"]):
+
+    # Get printer_config from printer_config.yaml
+    printer_config_path = os.path.join(self.get_plugin_data_folder(),
+                                       "printer_config.yaml")
+    old_printer_config = []
+    try:
+      with open(printer_config_path, "r") as printer_config_stream:
+        data = yaml.safe_load(printer_config_stream)
+        old_printer_config = data["printer_config"]
+    except:
+      self._logger.exception("Load printer_config.yaml failed")
+
+    if new_config_as_list != old_printer_config:
       self._logger.debug("New printer config: {}".format(str(self._current_config)))
-      self._settings.set(["printer_config"], new_config_as_list)
+      # Set printer_config to printer_config.yaml
+      printer_config_path = os.path.join(self.get_plugin_data_folder(),
+                                         "printer_config.yaml")
+      data = {}
+      data['version'] = self._plugin_version
+      data['printer_config'] = self._current_config.as_list()
+      try:
+        with open(printer_config_path, "w") as printer_config_stream:
+          yaml.safe_dump(data, printer_config_stream)
+      except:
+        logger.exception("Save printer_config.yaml failed")
 
   def get_printer_config(self):
     """Return the latest printer config."""
