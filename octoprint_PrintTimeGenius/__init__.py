@@ -21,6 +21,7 @@ import types
 import yaml
 import flask
 import pkg_resources
+from threading import Timer
 from collections import defaultdict
 from .printer_config import PrinterConfig
 import psutil
@@ -364,6 +365,22 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
       self._plugin._printer._estimator.recheck_metadata = True
     return results
 
+def do_later(seconds):
+  """Do the decorated function only if it's been at least seconds since the last
+     call.  If less than seconds elapse before another call to the decorated
+     function, restart the timer.  This means that if there is a string of calls
+     to the decorated function such that each call is less than 5 seconds apart,
+     only the last one will happen."""
+  def new_decorator(f, *args, **kwargs):
+    def to_do_later(*args, **kwargs):
+      if to_do_later.__timer is not None:
+        to_do_later.__timer.cancel()
+      to_do_later.__timer = Timer(seconds, f, args, kwargs)
+      to_do_later.__timer.start()
+    to_do_later.__timer = None
+    return to_do_later
+  return new_decorator
+
 class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
                             octoprint.plugin.AssetPlugin,
                             octoprint.plugin.TemplatePlugin,
@@ -588,33 +605,28 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
 
   def update_printer_config(self, line):
     """Extract print config from the line."""
+    old_printer_config = self._current_config.as_list()
     self._current_config += line
-    new_config_as_list = self._current_config.as_list()
+    if self._current_config.as_list() != old_printer_config:
+      self.write_printer_config()
 
+  @do_later(5)
+  def write_printer_config(self):
+    """Write the printer_config out to disk."""
     # Get printer_config from printer_config.yaml
+    new_config_as_list = self._current_config.as_list()
+    self._logger.info("New printer config: {}".format(str(self._current_config)))
+    # Set printer_config to printer_config.yaml
     printer_config_path = os.path.join(self.get_plugin_data_folder(),
                                        "printer_config.yaml")
-    old_printer_config = []
+    data = {}
+    data['version'] = self._plugin_version
+    data['printer_config'] = new_config_as_list
     try:
-      with open(printer_config_path, "r") as printer_config_stream:
-        data = yaml.safe_load(printer_config_stream)
-        old_printer_config = data["printer_config"]
+      with open(printer_config_path, "w") as printer_config_stream:
+        yaml.safe_dump(data, printer_config_stream)
     except:
-      self._logger.exception("Load printer_config.yaml failed")
-
-    if new_config_as_list != old_printer_config:
-      self._logger.debug("New printer config: {}".format(str(self._current_config)))
-      # Set printer_config to printer_config.yaml
-      printer_config_path = os.path.join(self.get_plugin_data_folder(),
-                                         "printer_config.yaml")
-      data = {}
-      data['version'] = self._plugin_version
-      data['printer_config'] = self._current_config.as_list()
-      try:
-        with open(printer_config_path, "w") as printer_config_stream:
-          yaml.safe_dump(data, printer_config_stream)
-      except:
-        logger.exception("Save printer_config.yaml failed")
+      logger.exception("Save printer_config.yaml failed")
 
   def get_printer_config(self):
     """Return the latest printer config."""
