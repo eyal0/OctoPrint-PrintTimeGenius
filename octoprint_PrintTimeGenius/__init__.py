@@ -592,17 +592,6 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
           job_type, self._printer, self._file_manager, self._logger, self._current_history)
     return make_genius_estimator
 
-  def getValueForCode(self, line, code):
-    """Find the value for a code in a line.
-
-    The result is a string or none if the code is not found.
-    """
-    pos = line.find(code)
-    if pos < 0:
-      return None
-    ret = line[pos+1:].partition(" ")
-    return ret[0]
-
   def update_printer_config(self, line):
     """Extract print config from the line."""
     old_printer_config = self._current_config.as_list()
