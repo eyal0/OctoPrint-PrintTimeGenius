@@ -21,6 +21,7 @@ import types
 import yaml
 import flask
 import pkg_resources
+import errno
 from threading import Timer
 from collections import defaultdict
 from .printer_config import PrinterConfig
@@ -214,8 +215,9 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
         with open(print_history_path, "r") as print_history_stream:
           data = yaml.safe_load(print_history_stream)
           print_history = data["print_history"]
-      except:
-        logger.exception("Load print_history.yaml failed")
+      except IOError as e:
+        if e.errno != errno.ENOENT:
+          raise
       if not print_history:
         return
       print_history = [ph for ph in print_history
@@ -437,8 +439,9 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       try:
         with open(print_history_path, "r") as print_history_stream:
           data = yaml.safe_load(print_history_stream)
-      except:
-        self._logger.exception("Load print_history.yaml failed")
+      except IOError as e:
+        if e.errno != errno.ENOENT:
+          raise
       return json.dumps(data)
     elif flask.request.method == "POST":
       try:
@@ -467,8 +470,9 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
         with open(print_history_path, "r") as print_history_stream:
           data = yaml.safe_load(print_history_stream) or {}
           print_history = data["print_history"]
-      except:
-        self._logger.exception("Load print_history.yaml failed")
+      except IOError as e:
+        if e.errno != errno.ENOENT:
+          raise
       metadata = self._file_manager.get_metadata(payload["origin"], payload["path"])
       if not "analysis" in metadata or not "analysisPrintTime" in metadata["analysis"]:
         return
@@ -554,8 +558,9 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
         data = yaml.safe_load(printer_config_stream)
         for line in data["printer_config"]:
           self._current_config += line
-    except:
-      self._logger.exception("Load printer_config.yaml failed")
+    except IOError as e:
+      if e.errno != errno.ENOENT:
+        raise
     self._old_printer_config = self._current_config.as_list()
 
   def save_settings(self):
