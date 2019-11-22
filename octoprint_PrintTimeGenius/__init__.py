@@ -18,7 +18,11 @@ import time
 import os
 import sys
 import types
+import yaml
+import flask
 import pkg_resources
+import errno
+from threading import Timer
 from collections import defaultdict
 from .printer_config import PrinterConfig
 import psutil
@@ -204,9 +208,16 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
     Modifies the analysis in place.
     """
     try:
-      if not self._plugin._settings.has(["print_history"]):
-        return
-      print_history = self._plugin._settings.get(["print_history"])
+      print_history = None
+      print_history_path = os.path.join(self._plugin.get_plugin_data_folder(),
+                                        "print_history.yaml")
+      try:
+        with open(print_history_path, "r") as print_history_stream:
+          data = yaml.safe_load(print_history_stream)
+          print_history = data["print_history"]
+      except IOError as e:
+        if e.errno != errno.ENOENT:
+          raise
       if not print_history:
         return
       print_history = [ph for ph in print_history
@@ -356,6 +367,22 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
       self._plugin._printer._estimator.recheck_metadata = True
     return results
 
+def do_later(seconds):
+  """Do the decorated function only if it's been at least seconds since the last
+     call.  If less than seconds elapse before another call to the decorated
+     function, restart the timer.  This means that if there is a string of calls
+     to the decorated function such that each call is less than 5 seconds apart,
+     only the last one will happen."""
+  def new_decorator(f, *args, **kwargs):
+    def to_do_later(*args, **kwargs):
+      if to_do_later.__timer is not None:
+        to_do_later.__timer.cancel()
+      to_do_later.__timer = Timer(seconds, f, args, kwargs)
+      to_do_later.__timer.start()
+    to_do_later.__timer = None
+    return to_do_later
+  return new_decorator
+
 class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
                             octoprint.plugin.AssetPlugin,
                             octoprint.plugin.TemplatePlugin,
@@ -368,6 +395,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     self._current_history = {}
     dd = lambda: defaultdict(dd)
     self._current_config = PrinterConfig() # dict of timing-relevant config commands
+    self._old_printer_config = self._current_config.as_list() # Cache of the config that is on disk.
 
   ##~~ SettingsPlugin mixin
   def get_settings_defaults(self):
@@ -396,13 +424,34 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
         "enableOctoPrintAnalyzer": False,
         "allowAnalysisWhilePrinting": False,
         "allowAnalysisWhileHeating": True,
-        "print_history": [],
-        "printer_config": []
     }
 
   @octoprint.plugin.BlueprintPlugin.route("/get_settings_defaults", methods=["GET"])
   def get_settings_defaults_as_string(self):
     return json.dumps(self.get_settings_defaults())
+
+  @octoprint.plugin.BlueprintPlugin.route("/print_history", methods=["POST", "GET"])
+  def print_history_request(self):
+    print_history_path = os.path.join(self.get_plugin_data_folder(),
+                                      "print_history.yaml")
+    data = None
+    if flask.request.method == "GET":
+      try:
+        with open(print_history_path, "r") as print_history_stream:
+          data = yaml.safe_load(print_history_stream)
+      except IOError as e:
+        if e.errno != errno.ENOENT:
+          raise
+      return json.dumps(data)
+    elif flask.request.method == "POST":
+      try:
+        data = json.loads(flask.request.data)
+        with open(print_history_path, "w") as print_history_stream:
+          yaml.safe_dump(data, print_history_stream)
+      except:
+        self._logger.exception("Save print_history.yaml failed")
+        abort()
+      return flask.make_response("", 200)
 
   ##~~ EventHandlerPlugin API
   def on_event(self, event, payload):
@@ -413,10 +462,17 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     """
     if event == "PrintDone":
       # Store the details and also the timestamp.
-      if not self._settings.has(["print_history"]):
-        print_history = []
-      else:
-        print_history = self._settings.get(["print_history"])
+      print_history = []
+      print_history_path = os.path.join(self.get_plugin_data_folder(),
+                                        "print_history.yaml")
+      data = {}
+      try:
+        with open(print_history_path, "r") as print_history_stream:
+          data = yaml.safe_load(print_history_stream) or {}
+          print_history = data["print_history"]
+      except IOError as e:
+        if e.errno != errno.ENOENT:
+          raise
       metadata = self._file_manager.get_metadata(payload["origin"], payload["path"])
       if not "analysis" in metadata or not "analysisPrintTime" in metadata["analysis"]:
         return
@@ -433,8 +489,13 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       print_history.sort(key=lambda x: x["timestamp"], reverse=True)
       MAX_HISTORY_ITEMS = 5
       del print_history[MAX_HISTORY_ITEMS:]
-      self._settings.set(["print_history"], print_history)
-      self.save_settings()
+      data['print_history'] = print_history
+      data['version'] = self._plugin_version
+      try:
+        with open(print_history_path, "w") as print_history_stream:
+          yaml.safe_dump(data, print_history_stream)
+      except:
+        self._logger.exception("Save print_history.yaml failed")
 
   @octoprint.plugin.BlueprintPlugin.route("/analyze/<origin>/<path:path>", methods=["GET"]) # Different spellings
   @octoprint.plugin.BlueprintPlugin.route("/analyse/<origin>/<path:path>", methods=["GET"])
@@ -488,8 +549,19 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
         self.old_on_comm(*args, **kwargs)
         self._create_estimator()
       self._printer.on_comm_file_selected = types.MethodType(new_on_comm, self._printer)
-    for line in self._settings.get(["printer_config"]):
-      self._current_config += line
+
+    # Get printer_config from printer_config.yaml
+    printer_config_path = os.path.join(self.get_plugin_data_folder(),
+                                       "printer_config.yaml")
+    try:
+      with open(printer_config_path, "r") as printer_config_stream:
+        data = yaml.safe_load(printer_config_stream)
+        for line in data["printer_config"]:
+          self._current_config += line
+    except IOError as e:
+      if e.errno != errno.ENOENT:
+        raise
+    self._old_printer_config = self._current_config.as_list()
 
   def save_settings(self):
     self._logger.info("Saving settings to config.yaml")
@@ -527,24 +599,34 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
           job_type, self._printer, self._file_manager, self._logger, self._current_history)
     return make_genius_estimator
 
-  def getValueForCode(self, line, code):
-    """Find the value for a code in a line.
-
-    The result is a string or none if the code is not found.
-    """
-    pos = line.find(code)
-    if pos < 0:
-      return None
-    ret = line[pos+1:].partition(" ")
-    return ret[0]
-
   def update_printer_config(self, line):
     """Extract print config from the line."""
+    old_config_as_list = self._current_config.as_list()
     self._current_config += line
     new_config_as_list = self._current_config.as_list()
-    if new_config_as_list != self._settings.get(["printer_config"]):
-      self._logger.debug("New printer config: {}".format(str(self._current_config)))
-      self._settings.set(["printer_config"], new_config_as_list)
+    if new_config_as_list != old_config_as_list:
+      # There has been a change that affects the config.
+      self.write_printer_config()
+
+  @do_later(5)
+  def write_printer_config(self):
+    """Write the printer_config out to disk."""
+    # Get printer_config from printer_config.yaml
+    new_config_as_list = self._current_config.as_list()
+    if new_config_as_list != self._old_printer_config:
+      self._logger.info("New printer config: {}".format(str(self._current_config)))
+      # Set printer_config to printer_config.yaml
+      printer_config_path = os.path.join(self.get_plugin_data_folder(),
+                                         "printer_config.yaml")
+      data = {}
+      data['version'] = self._plugin_version
+      data['printer_config'] = new_config_as_list
+      try:
+        with open(printer_config_path, "w") as printer_config_stream:
+          yaml.safe_dump(data, printer_config_stream)
+          self._old_printer_config = self._current_config.as_list()
+      except:
+        logger.exception("Save printer_config.yaml failed")
 
   def get_printer_config(self):
     """Return the latest printer config."""

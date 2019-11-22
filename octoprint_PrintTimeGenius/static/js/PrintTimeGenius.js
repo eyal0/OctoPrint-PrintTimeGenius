@@ -12,6 +12,8 @@ $(function() {
     self.printerStateViewModel = parameters[1];
     self.filesViewModel = parameters[2];
     self.selectedGcodes = ko.observable();
+    self.print_history = ko.observableArray();
+    self.version = undefined;
 
     // Overwrite the printTimeLeftOriginString function
     ko.extenders.addGenius = function(target, option) {
@@ -99,7 +101,22 @@ $(function() {
       self.enableOctoPrintAnalyzer = printTimeGeniusSettings.enableOctoPrintAnalyzer;
       self.allowAnalysisWhilePrinting = printTimeGeniusSettings.allowAnalysisWhilePrinting;
       self.allowAnalysisWhileHeating = printTimeGeniusSettings.allowAnalysisWhileHeating;
-      self.print_history = printTimeGeniusSettings.print_history;
+      OctoPrint.get(OctoPrint.getBlueprintUrl("PrintTimeGenius") + "print_history")
+          .done(function (print_history) {
+            self.version = print_history['version'];
+            self.print_history(ko.mapping.fromJS(print_history['print_history'])());
+          });
+      self.print_history.subscribe(function (newValue) {
+        if (!newValue) {
+          return;
+        }
+        let to_write = {
+          'print_history': ko.mapping.toJS(newValue),
+          'version': self.version
+        };
+        OctoPrint.postJson(OctoPrint.getBlueprintUrl("PrintTimeGenius") + "print_history",
+                           to_write);
+      });
       // Overwrite the formatFuzzyPrintTime as needed.
       self.originalFormatFuzzyPrintTime = formatFuzzyPrintTime;
       formatFuzzyPrintTime = function() {
