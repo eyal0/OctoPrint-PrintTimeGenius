@@ -43,9 +43,9 @@ def main():
   for line in output.stdout:
     if not line:
       continue
-    if line.startswith("Progress:"):
+    if line.startswith(b"Progress:"):
       line = line[len("Progress:"):]
-      (filepos, filament, time) = map(float, line.split(","))
+      (filepos, filament, time) = map(float, line.split(b","))
       if filament > 0 and not first_filament:
         first_filament = filepos
       if not max_filament or filament > max_filament:
@@ -58,7 +58,7 @@ def main():
         last_row = None
       else:
         last_row = [filepos, time]
-    elif line.startswith("Analysis:"):
+    elif line.startswith(b"Analysis:"):
       line = line[len("Analysis:"):]
       result.update(json.loads(line))
   if last_row:
