@@ -70,19 +70,25 @@ $(function() {
         }
       }
       return results;
-    }
+    };
 
-    self.FileList = ko.pureComputed(function() {
-      return self.recurseFiles(self.filesViewModel.allItems()).slice()
-          .sort(function(a,b) {
-            if (_.has(a, "gcodeAnalysis.progress") !=
-                _.has(b, "gcodeAnalysis.progress")) {
-              return (_.has(a, "gcodeAnalysis.progress") -
-                      _.has(b, "gcodeAnalysis.progress"));
-            }
-            return a.path.localeCompare(b.path);
-          });
-    });
+    self.theFiles = function(items) {
+    	let results = [];
+    	let queue = [{children: items}];
+
+    	while (queue.length > 0) {
+    		item = queue.shift();
+    		results.push.apply(results, item.children.filter(item => item["type"] == "machinecode"));
+    		queue.push.apply(queue, item.children.filter(item => "children" in item));
+    	}
+    	return results;
+    };
+
+    self.FileList = ko.observableArray([]);
+
+    self.onSettingsShown = function() {
+        self.FileList(self.theFiles(self.filesViewModel.allItems()));
+    }
 
     self.analyzeCurrentFile = function () {
       let items = self.selectedGcodes();
