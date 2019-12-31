@@ -13,6 +13,8 @@ $(function() {
     self.filesViewModel = parameters[2];
     self.selectedGcodes = ko.observable();
     self.print_history = ko.observableArray();
+    self.FileList = ko.observableArray([]);
+    self.settings_visible = ko.observable(false);
     self.version = undefined;
 
     // Overwrite the printTimeLeftOriginString function
@@ -84,11 +86,24 @@ $(function() {
     	return results;
     };
 
-    self.FileList = ko.observableArray([]);
+    self.update_filelist = function() {
+        self.FileList(self.theFiles(self.filesViewModel.allItems()));
+    };
+
+    self.onEventUpdatedFiles = function(payload) {
+        if (self.settings_visible() && payload.type === 'printables') {
+            setTimeout(self.update_filelist, 20000);
+        }
+    };
 
     self.onSettingsShown = function() {
-        self.FileList(self.theFiles(self.filesViewModel.allItems()));
-    }
+        self.settings_visible(true);
+        self.update_filelist();
+    };
+
+    self.onSettingsHidden = function() {
+        self.settings_visible(false);
+    };
 
     self.analyzeCurrentFile = function () {
       let items = self.selectedGcodes();
