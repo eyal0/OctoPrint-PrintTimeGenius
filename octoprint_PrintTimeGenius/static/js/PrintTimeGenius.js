@@ -60,20 +60,7 @@ $(function() {
       }
     });
     self.printerStateViewModel.printTimeLeftOrigin.valueHasMutated();
-
-    self.recurseFiles = function(items) {
-      let results = [];
-      for (let item of items) {
-        if (item["type"] == "machinecode") {
-          results.push(item);
-        }
-        if ("children" in item) {
-          results = results.concat(self.recurseFiles(item.children));
-        }
-      }
-      return results;
-    };
-
+    
     self.theFiles = function(items) {
     	let results = [];
     	let queue = [{children: items}];
