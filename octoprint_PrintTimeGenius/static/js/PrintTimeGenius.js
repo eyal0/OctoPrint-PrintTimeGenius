@@ -60,15 +60,15 @@ $(function() {
       }
     });
     self.printerStateViewModel.printTimeLeftOrigin.valueHasMutated();
-    
+
     self.theFiles = function(items) {
     	let results = [];
     	let queue = [{children: items}];
 
     	while (queue.length > 0) {
     		item = queue.shift();
-    		results.push.apply(results, item.children.filter(item => item["type"] == "machinecode"));
-    		queue.push.apply(queue, item.children.filter(item => "children" in item));
+    		results.push(...item.children.filter(item => item["type"] == "machinecode"));
+    		queue.push(...item.children.filter(item => "children" in item));
     	}
     	return results;
     };
