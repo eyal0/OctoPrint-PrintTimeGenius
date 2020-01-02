@@ -74,7 +74,14 @@ $(function() {
     };
 
     self.update_filelist = function() {
-        self.FileList(self.theFiles(self.filesViewModel.allItems()));
+        let files = self.theFiles(self.filesViewModel.allItems())
+            .sort(function(a,b) {
+                if (_.has(a, "gcodeAnalysis.progress") != _.has(b, "gcodeAnalysis.progress")) {
+                    return (_.has(a, "gcodeAnalysis.progress") - _.has(b, "gcodeAnalysis.progress"));
+                }
+                return a.path.localeCompare(b.path);
+            });
+        self.FileList(files);
     };
 
     self.onEventUpdatedFiles = function(payload) {
