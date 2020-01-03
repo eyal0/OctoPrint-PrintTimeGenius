@@ -13,7 +13,6 @@ $(function() {
     self.filesViewModel = parameters[2];
     self.selectedGcodes = ko.observable();
     self.print_history = ko.observableArray();
-    self.FileList = ko.observableArray([]);
     self.settings_visible = ko.observable(false);
     self.version = undefined;
 
@@ -73,26 +72,22 @@ $(function() {
     	return results;
     };
 
-    self.update_filelist = function() {
-        let files = self.theFiles(self.filesViewModel.allItems())
+    self.FileList = ko.pureComputed(function() {
+        // only compute FileList when settings is visible
+        if (!self.settings_visible()) {
+            return [];
+        }
+        return self.theFiles(self.filesViewModel.allItems())
             .sort(function(a,b) {
                 if (_.has(a, "gcodeAnalysis.progress") != _.has(b, "gcodeAnalysis.progress")) {
                     return (_.has(a, "gcodeAnalysis.progress") - _.has(b, "gcodeAnalysis.progress"));
                 }
                 return a.path.localeCompare(b.path);
             });
-        self.FileList(files);
-    };
-
-    self.onEventUpdatedFiles = function(payload) {
-        if (self.settings_visible() && payload.type === 'printables') {
-            setTimeout(self.update_filelist, 20000);
-        }
-    };
+    });
 
     self.onSettingsShown = function() {
         self.settings_visible(true);
-        self.update_filelist();
     };
 
     self.onSettingsHidden = function() {
