@@ -12,6 +12,8 @@ def main():
   machine = platform.machine()
   if platform.system() == "Darwin":
     machine = "darwin-" + machine
+  elif platform.system() == "Windows":
+    machine = "windows-" + machine + ".exe"
   gcode = sys.argv[2]
   mcodes = None
   if len(sys.argv) > 3:
