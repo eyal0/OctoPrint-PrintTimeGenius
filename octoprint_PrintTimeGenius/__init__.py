@@ -676,6 +676,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
 # can be overwritten via __plugin_xyz__ control properties. See the documentation for that.
 __plugin_name__ = "PrintTimeGenius Plugin"
+__plugin_pythoncompat__ = ">=2.7,<4"
 
 def __plugin_load__():
   global __plugin_implementation__
