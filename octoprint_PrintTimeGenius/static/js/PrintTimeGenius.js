@@ -13,6 +13,7 @@ $(function() {
     self.filesViewModel = parameters[2];
     self.selectedGcodes = ko.observable();
     self.print_history = ko.observableArray();
+    self.settings_visible = ko.observable(false);
     self.version = undefined;
 
     // Overwrite the printTimeLeftOriginString function
@@ -59,30 +60,39 @@ $(function() {
     });
     self.printerStateViewModel.printTimeLeftOrigin.valueHasMutated();
 
-    self.recurseFiles = function(items) {
-      let results = [];
-      for (let item of items) {
-        if (item["type"] == "machinecode") {
-          results.push(item);
-        }
-        if ("children" in item) {
-          results = results.concat(self.recurseFiles(item.children));
-        }
-      }
-      return results;
-    }
+    self.theFiles = function(items) {
+    	let results = [];
+    	let queue = [{children: items}];
+
+    	while (queue.length > 0) {
+    		item = queue.shift();
+    		results.push(...item.children.filter(item => item["type"] == "machinecode"));
+    		queue.push(...item.children.filter(item => "children" in item));
+    	}
+    	return results;
+    };
 
     self.FileList = ko.pureComputed(function() {
-      return self.recurseFiles(self.filesViewModel.allItems()).slice()
-          .sort(function(a,b) {
-            if (_.has(a, "gcodeAnalysis.progress") !=
-                _.has(b, "gcodeAnalysis.progress")) {
-              return (_.has(a, "gcodeAnalysis.progress") -
-                      _.has(b, "gcodeAnalysis.progress"));
-            }
-            return a.path.localeCompare(b.path);
-          });
+        // only compute FileList when settings is visible
+        if (!self.settings_visible()) {
+            return [];
+        }
+        return self.theFiles(self.filesViewModel.allItems())
+            .sort(function(a,b) {
+                if (_.has(a, "gcodeAnalysis.progress") != _.has(b, "gcodeAnalysis.progress")) {
+                    return (_.has(a, "gcodeAnalysis.progress") - _.has(b, "gcodeAnalysis.progress"));
+                }
+                return a.path.localeCompare(b.path);
+            });
     });
+
+    self.onSettingsShown = function() {
+        self.settings_visible(true);
+    };
+
+    self.onSettingsHidden = function() {
+        self.settings_visible(false);
+    };
 
     self.analyzeCurrentFile = function () {
       let items = self.selectedGcodes();
