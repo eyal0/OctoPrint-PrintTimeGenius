@@ -37,7 +37,7 @@ plugin_license = "AGPLv3"
 plugin_requires = ["OctoPrint>=1.3.9rc1", "psutil", "sarge"]
 from sys import version_info
 if version_info[0] < 3:
-    plugin_requires += "logging"
+    plugin_requires.append("logging")
 
 ### --------------------------------------------------------------------------------------------------------------------
 ### More advanced options that you usually shouldn't have to touch follow after this point
