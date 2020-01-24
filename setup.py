@@ -35,7 +35,8 @@ plugin_license = "AGPLv3"
 # Any additional requirements besides OctoPrint should be listed here
 # For now, require the working release, which is only 1.3.9rc1.
 plugin_requires = ["OctoPrint>=1.3.9rc1", "psutil", "sarge"]
-if sys.version_info[0] < 3:
+from sys import version_info
+if version_info[0] < 3:
     plugin_requires += "logging"
 
 ### --------------------------------------------------------------------------------------------------------------------
