@@ -171,7 +171,7 @@ reverse_progress = []
 first_filament_filepos = None
 def update(d, u):
   """Do deep updates of dict."""
-  for k, v in u.iteritems():
+  for k, v in u.items():
     if isinstance(v, collections.Mapping):
       d[k] = update(d.get(k, dd()), v)
     else:
@@ -229,7 +229,7 @@ def get_analysis_from_gcode(machinecode_path, parsers):
 if __name__ == "__main__":
   help_epilog = ("Possible parsers and the functions that will be run:\n\n     " +
                  "\n     ".join("%s: %s" % (k, ('\n' + (len(k)+7) * ' ').join(x.__name__ for x in v))
-                                for (k, v) in sorted(register_parser.all.iteritems())))
+                                for (k, v) in sorted(register_parser.all.items())))
   parser = argparse.ArgumentParser(description='Analyze gcode text for printing info.', epilog=help_epilog, formatter_class=argparse.RawDescriptionHelpFormatter)
   class ParsersAction(argparse.Action):
     def __init__(self, option_strings, dest, **kwargs):
