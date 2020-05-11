@@ -134,6 +134,10 @@ class PrinterConfig(object):
     mcode = get_code(new_line, "M")
     if not mcode:
       return self  #Save time by quiting early
+    # add T0 when extruder index is ommited to correctly merge the mcodes
+    if mcode == "M92" or mcode == "M221":
+      if get_code(mcode, "T") == "":
+        new_line += " T0"
     for (mcodes, unique, merge) in [(["M92", "M201", "M203"], "MT", "MTXYZE"),
                                     (["M204"], "M", "MSPRT"),
                                     (["M205"], "M", "MBESTXYZJ"),
@@ -145,6 +149,11 @@ class PrinterConfig(object):
       if mcode in mcodes:
         new_lines = []
         for line in self.lines:
+          # removes values saved without extruder index
+          line_mcode = get_code(line, "M")
+          if line_mcode == "M92" or line_mcode == "M221":
+            if get_code(line, "T") == "":
+              line += " T0"
           if codes_match(line, new_line, unique):
             new_line = merge_codes(line, new_line, merge)
           else:
