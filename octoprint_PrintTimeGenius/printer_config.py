@@ -136,7 +136,7 @@ class PrinterConfig(object):
       return self  #Save time by quiting early
     # add T0 when extruder index is ommited to correctly merge the mcodes
     if mcode == "M221":
-      if get_code(mcode, "T") == "":
+      if get_code(new_line, "T") == "":
         new_line += " T0"
     for (mcodes, unique, merge) in [(["M92", "M201", "M203"], "MT", "MTXYZE"),
                                     (["M204"], "M", "MSPRT"),
