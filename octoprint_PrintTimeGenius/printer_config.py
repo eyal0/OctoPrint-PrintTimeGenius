@@ -122,6 +122,40 @@ class PrinterConfig(object):
   >>> p = PrinterConfig()
   >>> p += "M204 X1"; str(p)
   'M204'
+
+  >>> p = PrinterConfig()
+  >>> p += "M220"; str(p)
+  'M220'
+  >>> p += "M220 S100"; str(p)
+  'M220 S100'
+  >>> p += "M220 S80"; str(p)
+  'M220 S80'
+  >>> p += "M220"; str(p)
+  'M220 S80'
+  >>> p += "M221 S100"; str(p)
+  'M220 S80\\nM221 T0 S100'
+  >>> p += "M221 S110"; str(p)
+  'M220 S80\\nM221 T0 S110'
+  >>> p += "M221 T0 S120"; str(p)
+  'M220 S80\\nM221 T0 S120'
+  >>> p += "M221 T1 S90"; str(p)
+  'M220 S80\\nM221 T0 S120\\nM221 T1 S90'
+  >>> p += "M221 T2 S80"; str(p)
+  'M220 S80\\nM221 T0 S120\\nM221 T1 S90\\nM221 T2 S80'
+  >>> p += "M221 S70"; str(p)
+  'M220 S80\\nM221 T1 S90\\nM221 T2 S80\\nM221 T0 S70'
+  >>> p += "M221 T1"; str(p)
+  'M220 S80\\nM221 T2 S80\\nM221 T0 S70\\nM221 T1 S90'
+  >>> p += "M221"; str(p)
+  'M220 S80\\nM221 T2 S80\\nM221 T1 S90\\nM221 T0 S70'
+  >>> p += "M221 T2"; str(p)
+  'M220 S80\\nM221 T1 S90\\nM221 T0 S70\\nM221 T2 S80'
+  >>> p += "M221 T3"; str(p)
+  'M220 S80\\nM221 T1 S90\\nM221 T0 S70\\nM221 T2 S80\\nM221 T3'
+  >>> p += "M221 T0"; str(p)
+  'M220 S80\\nM221 T1 S90\\nM221 T2 S80\\nM221 T3\\nM221 T0 S70'
+  >>> p += "M220"; str(p)
+  'M221 T1 S90\\nM221 T2 S80\\nM221 T3\\nM221 T0 S70\\nM220 S80'
   """
   def __init__(self, lines=[]):
     """Creates a new PrintConfig starting with the lines provided."""
