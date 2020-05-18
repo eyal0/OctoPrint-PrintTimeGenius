@@ -517,7 +517,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     return ""
 
   def unmark_all_pending(self, dest, all_files):
-    for k, v in all_files.iteritems():
+    for k, v in all_files.items():
       if 'analysis' in v and 'analysisPending' in v['analysis'] and v['analysis']['analysisPending']:
         self._file_manager.set_additional_metadata(dest, v['path'], 'analysis', {'analysisPending': False}, merge=True)
       if 'children' in v:
@@ -650,6 +650,15 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     if strip_line.startswith("echo:"):
       strip_line = strip_line[len("echo:"):]
     strip_line = strip_line.strip()
+    if strip_line.find("Invalid extruder") >= 0:
+        return line
+    if strip_line.startswith("FR:") and strip_line.endswith("%"):
+      feed_rate = strip_line[len("FR:"):-1]
+      strip_line = "M220 S" + feed_rate
+    elif strip_line.startswith("E") and strip_line[2:9] == " Flow: " and strip_line.endswith("%"):
+      index = strip_line[1]
+      flow = strip_line[9:-1]
+      strip_line = "M221 S" + flow + " T" + index
     self.update_printer_config(strip_line)
     return line
 
