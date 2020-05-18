@@ -249,7 +249,7 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
                     for ph in print_history)))
       print_time_numerator = [(ph["lastFilamentPrintTime"] - ph["firstFilamentPrintTime"])
                               for ph in print_history]
-      print_time_denominaor = [(ph["analysisLastFilamentPrintTime"] - ph["analysisFirstFilamentPrintTime"])
+      print_time_denominator = [(ph["analysisLastFilamentPrintTime"] - ph["analysisFirstFilamentPrintTime"])
                                for ph in print_history]
       average_print_time_factor = sum(print_time_numerator) / sum(print_time_denominator)
       logger.info("Average scaling factor: {}".format(average_print_time_factor))
