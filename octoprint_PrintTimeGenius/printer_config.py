@@ -122,6 +122,40 @@ class PrinterConfig(object):
   >>> p = PrinterConfig()
   >>> p += "M204 X1"; str(p)
   'M204'
+
+  >>> p = PrinterConfig()
+  >>> p += "M220"; str(p)
+  'M220'
+  >>> p += "M220 S100"; str(p)
+  'M220 S100'
+  >>> p += "M220 S80"; str(p)
+  'M220 S80'
+  >>> p += "M220"; str(p)
+  'M220 S80'
+  >>> p += "M221 S100"; str(p)
+  'M220 S80\\nM221 T0 S100'
+  >>> p += "M221 S110"; str(p)
+  'M220 S80\\nM221 T0 S110'
+  >>> p += "M221 T0 S120"; str(p)
+  'M220 S80\\nM221 T0 S120'
+  >>> p += "M221 T1 S90"; str(p)
+  'M220 S80\\nM221 T0 S120\\nM221 T1 S90'
+  >>> p += "M221 T2 S80"; str(p)
+  'M220 S80\\nM221 T0 S120\\nM221 T1 S90\\nM221 T2 S80'
+  >>> p += "M221 S70"; str(p)
+  'M220 S80\\nM221 T1 S90\\nM221 T2 S80\\nM221 T0 S70'
+  >>> p += "M221 T1"; str(p)
+  'M220 S80\\nM221 T2 S80\\nM221 T0 S70\\nM221 T1 S90'
+  >>> p += "M221"; str(p)
+  'M220 S80\\nM221 T2 S80\\nM221 T1 S90\\nM221 T0 S70'
+  >>> p += "M221 T2"; str(p)
+  'M220 S80\\nM221 T1 S90\\nM221 T0 S70\\nM221 T2 S80'
+  >>> p += "M221 T3"; str(p)
+  'M220 S80\\nM221 T1 S90\\nM221 T0 S70\\nM221 T2 S80\\nM221 T3'
+  >>> p += "M221 T0"; str(p)
+  'M220 S80\\nM221 T1 S90\\nM221 T2 S80\\nM221 T3\\nM221 T0 S70'
+  >>> p += "M220"; str(p)
+  'M221 T1 S90\\nM221 T2 S80\\nM221 T3\\nM221 T0 S70\\nM220 S80'
   """
   def __init__(self, lines=[]):
     """Creates a new PrintConfig starting with the lines provided."""
@@ -134,6 +168,10 @@ class PrinterConfig(object):
     mcode = get_code(new_line, "M")
     if not mcode:
       return self  #Save time by quiting early
+    # add T0 when extruder index is ommited to correctly merge the mcodes
+    if mcode == "M221":
+      if get_code(new_line, "T") == "":
+        new_line += " T0"
     for (mcodes, unique, merge) in [(["M92", "M201", "M203"], "MT", "MTXYZE"),
                                     (["M204"], "M", "MSPRT"),
                                     (["M205"], "M", "MBESTXYZJ"),
@@ -145,6 +183,11 @@ class PrinterConfig(object):
       if mcode in mcodes:
         new_lines = []
         for line in self.lines:
+          # removes values saved without extruder index
+          line_mcode = get_code(line, "M")
+          if line_mcode == "M221":
+            if get_code(line, "T") == "":
+              line += " T0"
           if codes_match(line, new_line, unique):
             new_line = merge_codes(line, new_line, merge)
           else:
