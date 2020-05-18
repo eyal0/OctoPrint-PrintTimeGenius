@@ -71,6 +71,7 @@ class GeniusEstimator(PrintTimeEstimator):
     self._current_progress_index = -1 # Points to the entry that we used for remaining time
     self._called_genius_yet = False
     self.recheck_metadata = True
+    self._progress = None
 
   def _get_metadata(self):
     try:
@@ -83,7 +84,7 @@ class GeniusEstimator(PrintTimeEstimator):
     else:
       self._progress = self._metadata["analysis"]["progress"]
 
-  def _genius_estimate(self, progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType):
+  def _genius_estimate(self, progress, printTime, unused_cleanedPrintTime, unused_statisticalTotalPrintTime, unused_statisticalTotalPrintTimeType):
     """Return an estimate for the total print time remaining.
     Returns (remaining_time_in_seconds, "genius") or None if it failed.
     """
@@ -100,6 +101,11 @@ class GeniusEstimator(PrintTimeEstimator):
       self.recheck_metadata = False;
     if not self._progress:
       return None
+    if printTime is None:
+      # We don't know the printTime so far, only the progress which we want to calculate.
+      _interpolate_list(self._progress, progress)[1], "genius"
+
+    # If we do have a printTime, we can use it.
     # Can we increment the current_progress_index?
     while (self._current_progress_index + 1 < len(self._progress) and
            progress >= self._progress[self._current_progress_index+1][0]):
