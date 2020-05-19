@@ -69,9 +69,9 @@ class GeniusEstimator(PrintTimeEstimator):
     self._logger = logger
     self._current_history = current_history
     self._current_progress_index = -1 # Points to the entry that we used for remaining time
-    self._current_total_printTime = None # When we started using the current_progress
     self._called_genius_yet = False
     self.recheck_metadata = True
+    self._progress = None
 
   def _get_metadata(self):
     try:
@@ -84,7 +84,7 @@ class GeniusEstimator(PrintTimeEstimator):
     else:
       self._progress = self._metadata["analysis"]["progress"]
 
-  def _genius_estimate(self, progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType):
+  def _genius_estimate(self, progress, printTime, unused_cleanedPrintTime, unused_statisticalTotalPrintTime, unused_statisticalTotalPrintTimeType):
     """Return an estimate for the total print time remaining.
     Returns (remaining_time_in_seconds, "genius") or None if it failed.
     """
@@ -101,27 +101,27 @@ class GeniusEstimator(PrintTimeEstimator):
       self.recheck_metadata = False;
     if not self._progress:
       return None
+    if printTime is None:
+      # We don't know the printTime so far, only the progress which we want to calculate.
+      _interpolate_list(self._progress, progress)[1], "genius"
+
+    # If we do have a printTime, we can use it.
     # Can we increment the current_progress_index?
-    new_progress_index = self._current_progress_index
-    while (new_progress_index + 1 < len(self._progress) and
-           progress >= self._progress[new_progress_index+1][0]):
-      new_progress_index += 1 # Increment
-    if new_progress_index < 0:
+    while (self._current_progress_index + 1 < len(self._progress) and
+           progress >= self._progress[self._current_progress_index+1][0]):
+      self._current_progress_index += 1 # Increment
+    if self._current_progress_index < 0:
       return None # We're not even in range yet.
-    if new_progress_index != self._current_progress_index:
-      # We advanced to a new index, let's make new estimates.
-      if (progress > self._metadata["analysis"]["firstFilament"] and
-          not "firstFilamentPrintTime" in self._current_history):
-        self._current_history["firstFilamentPrintTime"] = printTime
-      if (not "lastFilamentPrintTime" in self._current_history or
-          progress <= self._metadata["analysis"]["lastFilament"]):
-        self._current_history["lastFilamentPrintTime"] = printTime
-      interpolation = _interpolate(progress, self._progress[new_progress_index], self._progress[new_progress_index+1])
-      # This is our best guess for the total print time.
-      self._current_total_printTime = interpolation[1] + printTime
-      self._current_progress_index = new_progress_index
-    remaining_print_time = self._current_total_printTime - printTime
-    return remaining_print_time, "genius"
+    # We advanced to a new index, let's make new estimates.
+    if (not "firstFilamentPrintTime" in self._current_history and
+        progress > self._metadata["analysis"]["firstFilament"]):
+      self._current_history["firstFilamentPrintTime"] = printTime
+    if (not "lastFilamentPrintTime" in self._current_history or
+        progress <= self._metadata["analysis"]["lastFilament"]):
+      self._current_history["lastFilamentPrintTime"] = printTime
+    interpolation = _interpolate(progress, self._progress[self._current_progress_index], self._progress[self._current_progress_index+1])
+    # This is our best guess for the total print time.
+    return interpolation[1], "genius"
 
   def estimate(self, progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType):
     try:
