@@ -27,15 +27,15 @@ def main():
   print("Running: {}".format(" ".join('"{}"'.format(c) for c in cmd)), file=sys.stderr)
   if not os.path.isfile(cmd[0]):
     print("Can't find: {}".format(cmd[0]), file=sys.stderr)
-    exit(2)
+    sys.exit(2)
   if not os.access(cmd[0], os.X_OK):
     print("Not executable: {}".format(cmd[0]), file=sys.stderr)
-    exit(3)
+    sys.exit(3)
   try:
     output = subprocess.Popen(cmd, stdout=subprocess.PIPE)
   except Exception as e:
     print(e, file=sys.stderr)
-    exit(1)
+    sys.exit(1)
   progress = []
   result = {}
   first_filament = None
@@ -68,7 +68,7 @@ def main():
   result["firstFilament"] = first_filament
   result["lastFilament"] = last_filament
   total_time = progress[-1][1]
-  result["progress"] = [[0,total_time]]
+  result["progress"] = [[0, total_time]]
   for progress_entry in progress:
     if last_filament_row and progress_entry[0] > last_filament_row[0]:
       # Squeeze this row into the right spot.
@@ -76,17 +76,22 @@ def main():
                                  total_time-last_filament_row[1]])
       last_filament_row = None
     if not last_filament_row or progress_entry[0] != last_filament_row[0]:
-      result["progress"].append(
-          [progress_entry[0],
-           total_time-progress_entry[1]])
+      if result["progress"][-1][0] == progress_entry[0]:
+        # Overwrite instead of append.
+        result["progress"][-1] = ([progress_entry[0],
+                                   total_time-progress_entry[1]])
+      else:
+        result["progress"].append(
+            [progress_entry[0],
+             total_time-progress_entry[1]])
   if last_filament_row:
     # We didn't ge to add it earlier so add it now.
     result["progress"].append([last_filament_row[0],
                                total_time-last_filament_row[1]])
-  result["progress"].append([1,0])
+  result["progress"].append([1, 0])
   result["estimatedPrintTime"] = total_time
   print(json.dumps(result))
-  exit(output.wait())
+  sys.exit(output.wait())
 
 if __name__ == "__main__":
   main()
