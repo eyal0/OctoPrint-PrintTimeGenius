@@ -72,11 +72,12 @@ class GeniusEstimator(PrintTimeEstimator):
     self._called_genius_yet = False
     self.recheck_metadata = True
     self._progress = None
+    self._metadata = None
 
   def _get_metadata(self):
     try:
       self._metadata = self._file_manager.get_metadata(self._origin, self._path)
-    except octoprint.filemanager.NoSuchStorage as e:
+    except octoprint.filemanager.NoSuchStorage:
       #The metadata is not found or maybe not yet written.
       self._metadata = None
     if not self._metadata or not "analysis" in self._metadata or not "progress" in self._metadata["analysis"]:
@@ -98,18 +99,23 @@ class GeniusEstimator(PrintTimeEstimator):
       self._called_genius_yet = True
     if self.recheck_metadata:
       self._get_metadata()
-      self.recheck_metadata = False;
+      self.recheck_metadata = False
     if not self._progress:
       return None
     if printTime is None:
       # We don't know the printTime so far, only the progress which we want to calculate.
-      _interpolate_list(self._progress, progress)[1], "genius"
+      return _interpolate_list(self._progress, progress)[1], "genius"
 
-    # If we do have a printTime, we can use it.
-    # Can we increment the current_progress_index?
+    # If we do have a printTime, we can use it.  Can we
+    # increment/decrement the current_progress_index?  We do this
+    # instead of a binary search because we're usually in the right
+    # place already so this is faster.
     while (self._current_progress_index + 1 < len(self._progress) and
            progress >= self._progress[self._current_progress_index+1][0]):
-      self._current_progress_index += 1 # Increment
+      self._current_progress_index += 1
+    while (self._current_progress_index > 0 and
+           progress < self._progress[self._current_progress_index][0]):
+      self._current_progress_index -= 1
     if self._current_progress_index < 0:
       return None # We're not even in range yet.
     # We advanced to a new index, let's make new estimates.
