@@ -108,6 +108,7 @@ $(function() {
       let printTimeGeniusSettings = settings.plugins.PrintTimeGenius;
       self.analyzers = printTimeGeniusSettings.analyzers;
       self.exactDurations = printTimeGeniusSettings.exactDurations;
+      self.showStars = printTimeGeniusSettings.showStars;
       self.enableOctoPrintAnalyzer = printTimeGeniusSettings.enableOctoPrintAnalyzer;
       self.allowAnalysisWhilePrinting = printTimeGeniusSettings.allowAnalysisWhilePrinting;
       self.allowAnalysisWhileHeating = printTimeGeniusSettings.allowAnalysisWhileHeating;
@@ -144,8 +145,12 @@ $(function() {
       });
       // Force an update because this is called after the format function has already run.
       self.exactDurations.valueHasMutated();
+
       self.originalGetSuccessClass = self.filesViewModel.getSuccessClass;
       self.filesViewModel.getSuccessClass = function(data) {
+        if (!self.showStars()) {
+          return self.originalGetSuccessClass(data);
+        }
         let additional_css = "";
         if (_.get(data, "gcodeAnalysis.analysisPending", false)) {
           additional_css = " print-time-genius-pending";
@@ -154,7 +159,10 @@ $(function() {
         }
         return self.originalGetSuccessClass(data) + additional_css;
       };
-      self.filesViewModel.requestData({force: true}); // So that the file list is updated with the changes above.
+      self.showStars.subscribe(function (newValue) {
+        self.filesViewModel.requestData({force: true}); // So that the file list is updated with the changes above.
+      });
+      self.showStars.valueHasMutated();
     }
 
     self.addAnalyzer = function() {
