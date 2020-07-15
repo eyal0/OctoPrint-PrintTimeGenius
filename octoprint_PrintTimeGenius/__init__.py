@@ -425,15 +425,16 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
          False),
     ]
     return {
-        "analyzers": [
-            {"description": description,
-             "command": command.format(python=sys.executable),
-             "enabled": enabled}
-            for (description, command, enabled) in built_in_analyzers],
-        "exactDurations": True,
-        "enableOctoPrintAnalyzer": False,
-        "allowAnalysisWhilePrinting": False,
-        "allowAnalysisWhileHeating": True,
+      "analyzers": [
+        {"description": description,
+         "command": command.format(python=sys.executable),
+         "enabled": enabled}
+        for (description, command, enabled) in built_in_analyzers],
+      "exactDurations": True,
+      "enableOctoPrintAnalyzer": False,
+      "allowAnalysisWhilePrinting": False,
+      "allowAnalysisWhileHeating": True,
+      "showStars": True,
     }
 
   @octoprint.plugin.BlueprintPlugin.route("/get_settings_defaults", methods=["GET"])
