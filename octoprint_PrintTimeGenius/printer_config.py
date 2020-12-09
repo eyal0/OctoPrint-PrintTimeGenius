@@ -123,8 +123,12 @@ class PrinterConfig:
   'M200 D1.75\\nM200 D0\\nM205 X1 Y2 Z3'
   >>> p += "M900 K12 J1"; str(p)
   'M200 D1.75\\nM200 D0\\nM205 X1 Y2 Z3\\nM900 K12'
-  >>> p += "M900 K0 Q10"; str(p)
-  'M200 D1.75\\nM200 D0\\nM205 X1 Y2 Z3\\nM900 K0'
+  >>> p += "M200 S0 D1.99"; str(p)
+  'M200 D0\\nM205 X1 Y2 Z3\\nM900 K12\\nM200 S0 D1.99'
+  >>> p += "M200 S1 D456"; str(p)
+  'M200 D0\\nM205 X1 Y2 Z3\\nM900 K12\\nM200 S1 D456'
+  >>> p += "M200 S1 D0"; str(p)
+  'M205 X1 Y2 Z3\\nM900 K12\\nM200 S1 D456\\nM200 S1 D0'
 
   >>> p = PrinterConfig()
   >>> p += "M204 X1"; str(p)
@@ -209,11 +213,11 @@ class PrinterConfig:
             (not float_or_0(get_code(line, "D")[1:])) ==
             (not float_or_0(get_code(new_line, "D")[1:]))):
           # We merge if the M and T match and also the value for D must be both
-          # present or both absent.
-          new_line = merge_codes(line, new_line, "MTD")
+          # present or both absent or 0.
+          new_line = merge_codes(line, new_line, "MTSD")
         else:
           new_lines.append(line)
-      new_lines.append(merge_codes("", new_line, "MTD"))
+      new_lines.append(merge_codes("", new_line, "MTSD"))
       self.lines = new_lines
       return self
     return self
