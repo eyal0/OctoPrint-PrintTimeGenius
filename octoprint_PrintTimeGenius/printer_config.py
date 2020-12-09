@@ -1,3 +1,10 @@
+"""
+Stores the printer config.
+
+To test this file use:
+
+python printer_config.py
+"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -40,7 +47,7 @@ def float_or_0(text):
   except ValueError:
     return 0
 
-def codes_match(a, b, codes):
+def codes_match(code0, code1, codes):
   """Given two lines stripped of spaces and comments, a and b, determine if they
   are the same for all the codes provided.  codes is a list of codes.  For each
   code, the code with value must match between the two lines for there to be a
@@ -56,11 +63,11 @@ def codes_match(a, b, codes):
   True
   """
   for code in codes:
-    if get_code(a, code) != get_code(b, code):
+    if get_code(code0, code) != get_code(code1, code):
       return False
   return True
 
-def merge_codes(a, b, codes):
+def merge_codes(code0, code1, codes):
   """For each code listed in codes, get the value from a and b and merge them,
   such that b can override the values in a.  codes not listed in codes aren't
   added at all.
@@ -73,7 +80,7 @@ def merge_codes(a, b, codes):
   """
   ret = []
   for code in codes:
-    ret.append(get_code(b, code) or get_code(a, code))
+    ret.append(get_code(code1, code) or get_code(code0, code))
   return " ".join(r for r in ret if r)
 
 def clean_line(line):
@@ -85,7 +92,7 @@ def clean_line(line):
   """
   return line.partition(";")[0].strip().upper()
 
-class PrinterConfig(object):
+class PrinterConfig:
   """Store just the lines needs for a printer's configuration.  This only stores
   the lines that we expect that we'll need to get accurate gcode analysis.
 
@@ -116,8 +123,12 @@ class PrinterConfig(object):
   'M200 D1.75\\nM200 D0\\nM205 X1 Y2 Z3'
   >>> p += "M900 K12 J1"; str(p)
   'M200 D1.75\\nM200 D0\\nM205 X1 Y2 Z3\\nM900 K12'
-  >>> p += "M900 K0 Q10"; str(p)
-  'M200 D1.75\\nM200 D0\\nM205 X1 Y2 Z3\\nM900 K0'
+  >>> p += "M200 S0 D1.99"; str(p)
+  'M200 D0\\nM205 X1 Y2 Z3\\nM900 K12\\nM200 S0 D1.99'
+  >>> p += "M200 S1 D456"; str(p)
+  'M200 D0\\nM205 X1 Y2 Z3\\nM900 K12\\nM200 S1 D456'
+  >>> p += "M200 S1 D0"; str(p)
+  'M205 X1 Y2 Z3\\nM900 K12\\nM200 S1 D456\\nM200 S1 D0'
 
   >>> p = PrinterConfig()
   >>> p += "M204 X1"; str(p)
@@ -157,13 +168,12 @@ class PrinterConfig(object):
   >>> p += "M220"; str(p)
   'M221 T1 S90\\nM221 T2 S80\\nM221 T3\\nM221 T0 S70\\nM220 S80'
   """
-  def __init__(self, lines=[]):
+  def __init__(self, lines=None):
     """Creates a new PrintConfig starting with the lines provided."""
-    self.lines = lines
+    self.lines = lines or []
 
   def __iadd__(self, new_line):
-    """Take a new line and add it into the config.
-    """
+    """Take a new line and add it into the config."""
     new_line = clean_line(new_line)
     mcode = get_code(new_line, "M")
     if not mcode:
@@ -200,24 +210,27 @@ class PrinterConfig(object):
       new_lines = []
       for line in self.lines:
         if (codes_match(line, new_line, "MT") and
-            (not float_or_0(get_code(line, "D")[1:])) == (not float_or_0(get_code(new_line, "D")[1:]))):
+            (not float_or_0(get_code(line, "D")[1:])) ==
+            (not float_or_0(get_code(new_line, "D")[1:]))):
           # We merge if the M and T match and also the value for D must be both
-          # present or both absent.
-          new_line = merge_codes(line, new_line, "MTD")
+          # present or both absent or 0.
+          new_line = merge_codes(line, new_line, "MTSD")
         else:
           new_lines.append(line)
-      new_lines.append(merge_codes("", new_line, "MTD"))
+      new_lines.append(merge_codes("", new_line, "MTSD"))
       self.lines = new_lines
       return self
     return self
 
   def __str__(self):
-    return ''.join(c for c in "\n".join(self.lines) if c.isdigit() or c.isalpha() or c.isspace() or c == '.')
+    return ''.join(c for c in "\n".join(self.lines)
+                   if c.isdigit() or c.isalpha() or c.isspace() or c == '.')
 
   def __repr__(self):
     return "%s(%r)" % (self.__class__, self.__dict__)
 
   def as_list(self):
+    """Return all the config as a list."""
     return list(self.lines)
 
 if __name__ == '__main__':
