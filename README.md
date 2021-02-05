@@ -17,4 +17,4 @@ or manually using this URL:
 
 ## Configuration
 
-After first installing, you should test that it works by going into settings and analyzing a file.  Then look at the log and make sure that there are no errors.  If you see errors, report them here.
+After first installing, you must run M503 in order to import your printer's configuration. Next, you should test that the plugin works by going into settings and analyzing a file.  Then look at the log and make sure that there are no errors.  If you see errors, report them here.
