@@ -5,8 +5,11 @@ import re
 import json
 import sys
 from collections import defaultdict
-import collections
 import argparse
+if float('.'.join((str(sys.version_info.major), str(sys.version_info.minor)))) < 3.3:
+  from collections import Mapping as collections_mapping
+else:
+  from collections.abc import Mapping as collections_mapping
 
 dd = lambda: defaultdict(dd)
 
@@ -172,7 +175,7 @@ first_filament_filepos = None
 def update(d, u):
   """Do deep updates of dict."""
   for k, v in u.items():
-    if isinstance(v, collections.Mapping):
+    if isinstance(v, collections_Mapping):
       d[k] = update(d.get(k, dd()), v)
     else:
       d[k] = v
