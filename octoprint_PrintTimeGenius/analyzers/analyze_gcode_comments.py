@@ -7,9 +7,9 @@ import sys
 from collections import defaultdict
 import argparse
 if float('.'.join((str(sys.version_info.major), str(sys.version_info.minor)))) < 3.3:
-  from collections import Mapping as collections_mapping
+  from collections import Mapping as collections_Mapping
 else:
-  from collections.abc import Mapping as collections_mapping
+  from collections.abc import Mapping as collections_Mapping
 
 dd = lambda: defaultdict(dd)
 
