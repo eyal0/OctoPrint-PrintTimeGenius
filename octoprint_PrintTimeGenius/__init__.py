@@ -93,8 +93,10 @@ class GeniusEstimator(PrintTimeEstimator):
     # It maps from filepos to estimated remaining time.
     # filepos is between 0 and 1, same as progress.
     # actual progress is in seconds
+    self._logger.info(f"got a request to genius_estimate {progress}, {printTime}, {unused_statisticalTotalPrintTime}, {unused_statisticalTotalPrintTimeType}")
     if not self._called_genius_yet:
       # Pretend like the first call is always at progress 0
+      self._logger.info("pretending 0")
       progress = 0
       self._called_genius_yet = True
     if self.recheck_metadata:
@@ -104,6 +106,7 @@ class GeniusEstimator(PrintTimeEstimator):
       return None
     if printTime is None:
       # We don't know the printTime so far, only the progress which we want to calculate.
+      self._logger.info(f"no printTime.  Interpolate {progress} in {self._progress}")
       return _interpolate_list(self._progress, progress)[1], "genius"
 
     # If we do have a printTime, we can use it.  Can we
@@ -130,10 +133,12 @@ class GeniusEstimator(PrintTimeEstimator):
     return interpolation[1], "genius"
 
   def estimate(self, progress, printTime, cleanedPrintTime, statisticalTotalPrintTime, statisticalTotalPrintTimeType):
+    self._logger.info(f"got a request to estimate {progress}, {cleanedPrintTime}, {statisticalTotalPrintTime}, {statisticalTotalPrintTimeType}")
     try:
       default_result = super(GeniusEstimator, self).estimate(
           progress, printTime, cleanedPrintTime,
           statisticalTotalPrintTime, statisticalTotalPrintTimeType)
+      self._logger.info(f"default result is {default_result}")
       result = default_result # This is the result that we will report.
       genius_result = default_result # Genius result defaults to the default_result
       if not self._called_genius_yet:
@@ -143,6 +148,7 @@ class GeniusEstimator(PrintTimeEstimator):
         genius_result = self._genius_estimate(
             progress, printTime, cleanedPrintTime,
             statisticalTotalPrintTime, statisticalTotalPrintTimeType)
+        self._logger.info(f"genius_result is {genius_result}")
         if genius_result:
           result = genius_result # If genius worked, use it.
       except Exception as e:
