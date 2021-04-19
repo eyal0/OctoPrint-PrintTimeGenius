@@ -113,10 +113,11 @@ $(function() {
       self.allowAnalysisWhilePrinting = printTimeGeniusSettings.allowAnalysisWhilePrinting;
       self.allowAnalysisWhileHeating = printTimeGeniusSettings.allowAnalysisWhileHeating;
       OctoPrint.get(OctoPrint.getBlueprintUrl("PrintTimeGenius") + "print_history")
-          .done(function (print_history) {
-            self.version = print_history['version'];
-            self.print_history(ko.mapping.fromJS(print_history['print_history'])());
-          });
+        .done(function (print_history) {
+          self.version = (print_history && 'version' in print_history && print_history['version']) || 0;
+          self.print_history(ko.mapping.fromJS(
+            ((print_history && 'print_history' in print_history && print_history['print_history']) || []))());
+        });
       self.print_history.subscribe(function (newValue) {
         if (!newValue) {
           return;
