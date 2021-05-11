@@ -340,6 +340,18 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
         logger.info("Sarge output: {}".format(results_err))
         logger.info("Result: {}".format(results_text))
         new_results = json.loads(results_text)
+        bedZ = self._plugin._settings.get(["bedZ"])
+        if ("printingArea" in new_results and
+            "minZ" in new_results["printingArea"] and
+            bedZ is not None):
+          old_minZ = new_results["printingArea"]["minZ"]
+          new_minZ = min(bedZ, old_minZ)
+          if old_minZ != new_minZ:
+            logger.info("Adjusting minZ ({}) to match bedZ ({})".format(old_minZ, bedZ))
+            new_results["printingArea"]["minZ"] = new_minZ
+            if ("dimensions" in new_results and
+                "height" in new_results["dimensions"]):
+              new_results["dimensions"]["height"] += old_minZ - new_minZ
         results.update(new_results)
         logger.info("Merged result: {}".format(results))
         self._finished_callback(self._current, results)
@@ -435,6 +447,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       "allowAnalysisWhilePrinting": False,
       "allowAnalysisWhileHeating": True,
       "showStars": True,
+      "bedZ": 0,
     }
 
   @octoprint.plugin.BlueprintPlugin.route("/get_settings_defaults", methods=["GET"])
