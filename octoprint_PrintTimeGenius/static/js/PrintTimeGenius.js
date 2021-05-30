@@ -61,15 +61,15 @@ $(function() {
     self.printerStateViewModel.printTimeLeftOrigin.valueHasMutated();
 
     self.theFiles = function(items) {
-    	let results = [];
-    	let queue = [{children: items}];
+      let results = [];
+      let queue = [{children: items}];
 
-    	while (queue.length > 0) {
-    		item = queue.shift();
-    		results.push(...item.children.filter(item => item["type"] == "machinecode"));
-    		queue.push(...item.children.filter(item => "children" in item));
-    	}
-    	return results;
+      while (queue.length > 0) {
+        item = queue.shift();
+        results.push(...item.children.filter(item => (item["type"] == "machinecode" && item["origin"] == "local")));
+        queue.push(...item.children.filter(item => "children" in item));
+      }
+      return results;
     };
 
     self.FileList = ko.pureComputed(function() {
