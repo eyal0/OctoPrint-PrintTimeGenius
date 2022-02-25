@@ -96,6 +96,71 @@
         </p>') }}
         <h3>{{ _('Compensation values') }}</h3>
         <table class="print-time-genius-table" style="border: 2px solid black;">
+          <thead style="border: 1px solid black;">
+            <tr>
+              <th style="border-left: 1px black solid; border-right: 1px black solid;">{{ _('Heating (s)') }}</th>
+              <th style="border-left: 1px black solid; border-right: 1px black solid;">{{ _('Extruding (%%)') }}</th>
+              <th style="border-left: 1px black solid; border-right: 1px black solid;">{{ _('Cooling (s)') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <input type="text"
+                       data-bind="attr: {placeholder:
+                                  _.flatten(_.map($data.print_history(),
+                                            function (x) {
+                                              if (_.has(x, 'firstFilamentPrintTime')) {
+                                                return [x.firstFilamentPrintTime()];
+                                              } else {
+                                                return [];
+                                              }
+                                            }))
+                                    .reduce(function (acc, val, _, orig) { return acc + val/orig.length; }, 0).toFixed(1)},
+                                  value:
+                                    _.has($data, 'compensation_values.heating') ?
+                                    $data.compensation_values.heating().toFixed(1) : ''">
+                </input>
+                <input type="text"
+                       data-bind="attr: {placeholder:
+                                  (function (x) { return x[0]*100/x[1]; })(_.flatten(_.map($data.print_history(),
+                                            function (x) {
+                                              if (_.has(x, 'firstFilamentPrintTime') &&
+                                                  _.has(x, 'lastFilamentPrintTime') &&
+                                                  _.has(x, 'analysisFirstFilamentPrintTime') &&
+                                                  _.has(x, 'analysisLastFilamentPrintTime')) {
+                                                return [[x.lastFilamentPrintTime() - x.firstFilamentPrintTime(),
+                                                         x.analysisLastFilamentPrintTime() - x.analysisFirstFilamentPrintTime()]];
+                                              } else {
+                                                return [];
+                                              }
+                                            }))
+                                    .reduce(function (acc, val) {
+                                              return [acc[0] + val[0], acc[1] + val[1]];
+                                            }, [0,0])).toFixed(1)},
+                                  value:
+                                    _.has($data, 'compensation_values.extuding') ?
+                                    $data.compensation_values.extruding().toFixed(1) : ''">
+                </input>
+                <input type="text"
+                       data-bind="attr: {placeholder:
+                                  _.flatten(_.map($data.print_history(),
+                                            function (x) {
+                                              if (_.has(x, 'lastFilamentPrintTime') &&
+                                                  _.has(x, 'payload.time')) {
+                                                return [x.payload.time() - x.lastFilamentPrintTime()];
+                                              } else {
+                                                return [];
+                                              }
+                                            }))
+                                    .reduce(function (acc, val, _, orig) { return acc + val/orig.length; }, 0).toFixed(1)},
+                                  value:
+                                    _.has($data, 'compensation_values.cooling') ?
+                                    $data.compensation_values.cooling().toFixed(1) : ''">
+                </input>
+              </td>
+            </tr>
+          </tbody>
         </table>
         <table class="print-time-genius-table" style="border: 2px solid black;">
           <thead style="border: 1px solid black;">
