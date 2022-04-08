@@ -17,4 +17,11 @@ or manually using this URL:
 
 ## Configuration
 
-After first installing, you must run M503 in order to import your printer's configuration. Next, you should test that the plugin works by going into settings and analyzing a file.  Then look at the log and make sure that there are no errors.  If you see errors, report them here.
+After first installing, you must run M503 in order to import your printer's configuration:
+1. Open OctoPrint
+2. Make sure your printer is connected and turned on.
+3. Click on the "Terminal" tab in Octoprint to get to the GCode Terminal. 
+4. You will see an area under the terminal window where you can enter the Code and click the "Send" button.   
+In that text box, type M503 and click send.
+
+Next, you should test that the plugin works by going into settings and analyzing a file.  Then look at the log and make sure that there are no errors.  If you see errors, report them here.
