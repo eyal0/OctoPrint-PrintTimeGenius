@@ -84,7 +84,7 @@ def process_slic3r_print_time(gcode_line):
 def process_slic3r_print_time_remaining(gcode_line):
   """Match a Slic3r PE print time remaining estimate"""
   ret = dd()
-  m = re.match('\s*M73\s+P([0-9.]+)\s+R([0-9.]+)\s*', gcode_line)
+  m = re.match('\s*M73\s+(?:P([0-9.]+)\s+)?R([0-9.]+)\s*', gcode_line)
   if m:
     minutes_text = m.group(2)
     minutes_elapsed = float(minutes_text)
