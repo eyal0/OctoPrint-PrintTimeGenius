@@ -98,6 +98,74 @@
         <table class="print-time-genius-table" style="border: 2px solid black;">
           <thead style="border: 1px solid black;">
             <tr>
+              <th style="border-left: 1px black solid; border-right: 1px black solid;">{{ _('Heating') }}</th>
+              <th style="border-left: 1px black solid; border-right: 1px black solid;">{{ _('Extruding') }}</th>
+              <th style="border-left: 1px black solid; border-right: 1px black solid;">{{ _('Cooling') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <input type="text" class="span13" title="Average heating time in seconds"
+                       data-bind="attr: {placeholder:
+                                  _.flatten(_.map($data.print_history(),
+                                            function (x) {
+                                              if (_.has(x, 'firstFilamentPrintTime')) {
+                                                return [x.firstFilamentPrintTime()];
+                                              } else {
+                                                return [];
+                                              }
+                                            }))
+                                    .reduce(function (acc, val, _, orig) { return acc + val/orig.length; }, 0).toFixed(1)},
+                                  value:
+                                    compensationValues.heating">
+                </input>
+              </td>
+              <td>
+                <input type="text" class="span13" title="Average actual/predicted extruding factor"
+                       data-bind="attr: {placeholder:
+                                  (function (x) { return x[0]/x[1]; })(_.flatten(_.map($data.print_history(),
+                                            function (x) {
+                                              if (_.has(x, 'firstFilamentPrintTime') &&
+                                                  _.has(x, 'lastFilamentPrintTime') &&
+                                                  _.has(x, 'analysisFirstFilamentPrintTime') &&
+                                                  _.has(x, 'analysisLastFilamentPrintTime')) {
+                                                return [[x.lastFilamentPrintTime() - x.firstFilamentPrintTime(),
+                                                         x.analysisLastFilamentPrintTime() - x.analysisFirstFilamentPrintTime()]];
+                                              } else {
+                                                return [];
+                                              }
+                                            }))
+                                    .reduce(function (acc, val) {
+                                              return [acc[0] + val[0], acc[1] + val[1]];
+                                            }, [0,0])).toFixed(3)},
+                                  value:
+                                    compensationValues.extruding">
+                </input>
+              </td>
+              <td>
+                <input type="text" class="span13" title="Average cooling time in seconds"
+                       data-bind="attr: {placeholder:
+                                  _.flatten(_.map($data.print_history(),
+                                            function (x) {
+                                              if (_.has(x, 'lastFilamentPrintTime') &&
+                                                  _.has(x, 'payload.time')) {
+                                                return [x.payload.time() - x.lastFilamentPrintTime()];
+                                              } else {
+                                                return [];
+                                              }
+                                            }))
+                                    .reduce(function (acc, val, _, orig) { return acc + val/orig.length; }, 0).toFixed(1)},
+                                  value:
+                                    $data.compensationValues.cooling">
+                </input>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <table class="print-time-genius-table" style="border: 2px solid black;">
+          <thead style="border: 1px solid black;">
+            <tr>
               <th style="border-left: 1px black solid; border-right: 1px black solid;" colspan=4>{{ _('Actual') }}</th>
               <th style="border-left: 1px black solid; border-right: 1px black solid;" colspan=3>{{ _('Predicted') }}</th>
               <th style="border-left: 1px black solid; border-right: 1px black solid;" colspan=1>{{ _('Compensated') }}</th>

@@ -112,6 +112,26 @@ $(function() {
       self.enableOctoPrintAnalyzer = printTimeGeniusSettings.enableOctoPrintAnalyzer;
       self.allowAnalysisWhilePrinting = printTimeGeniusSettings.allowAnalysisWhilePrinting;
       self.allowAnalysisWhileHeating = printTimeGeniusSettings.allowAnalysisWhileHeating;
+      function observableFloat(x) {
+        return ko.computed({
+          read: function() {
+            return x();
+          },
+          write: function(value) {
+            let floatValue = parseFloat(value);
+            if (isNaN(floatValue)) {
+              floatValue = null;
+            }
+            x(floatValue);
+          },
+          owner: self,
+        });
+      }
+      self.compensationValues = {
+        "heating": observableFloat(printTimeGeniusSettings.compensationValues.heating),
+        "extruding": observableFloat(printTimeGeniusSettings.compensationValues.extruding),
+        "cooling": observableFloat(printTimeGeniusSettings.compensationValues.cooling),
+      };
       OctoPrint.get(OctoPrint.getBlueprintUrl("PrintTimeGenius") + "print_history")
         .done(function (print_history) {
           self.version = (print_history && 'version' in print_history && print_history['version']) || 0;

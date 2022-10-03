@@ -242,12 +242,18 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
       logger.info("Recent heat-up times in seconds: {}".format(", ".join(map(str, heat_up_times))))
       average_heat_up_time = sum(heat_up_times) / len(heat_up_times)
       logger.info("Average heat-up: {} seconds".format(average_heat_up_time))
+      if self._plugin._settings.get(["compensationValues", "heating"]) is not None:
+        logger.info("Forced heating value {} so we'll use that instead.".format(self._plugin._settings.get(["compensationValues", "heating"])))
+        average_heat_up_time = self._plugin._settings.get(["compensationValues", "heating"])
       # How long did it take to cool down on previous prints?
       cool_down_times = [ph["payload"]["time"] - ph["lastFilamentPrintTime"]
                          for ph in print_history]
       logger.info("Recent cool-down times in seconds: {}".format(", ".join(map(str, cool_down_times))))
       average_cool_down_time = sum(cool_down_times) / len(cool_down_times)
       logger.info("Average cool-down: {} seconds".format(average_cool_down_time))
+      if self._plugin._settings.get(["compensationValues", "cooling"]) is not None:
+        logger.info("Forced cooling value {} so we'll use that instead.".format(self._plugin._settings.get(["compensationValues", "cooling"])))
+        average_cool_down_time = self._plugin._settings.get(["compensationValues", "cooling"])
       # Factor from the time actual time spent extruding to the predicted.
       logger.info("Time spent printing, actual vs predicted: {}".format(
           ", ".join("{}/{}".format(ph["lastFilamentPrintTime"] - ph["firstFilamentPrintTime"],
@@ -259,6 +265,9 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
                                for ph in print_history]
       average_print_time_factor = sum(print_time_numerator) / sum(print_time_denominator)
       logger.info("Average scaling factor: {}".format(average_print_time_factor))
+      if self._plugin._settings.get(["compensationValues", "extruding"]) is not None:
+        logger.info("Forced extruding factor {} so we'll use that instead.".format(self._plugin._settings.get(["compensationValues", "extruding"])))
+        average_print_time_factor = self._plugin._settings.get(["compensationValues", "extruding"])
       # Now make a new progress map.
       new_progress = []
       last_filament_remaining_time = _interpolate_list(analysis["progress"],
@@ -448,6 +457,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       "allowAnalysisWhileHeating": True,
       "showStars": True,
       "bedZ": 0,
+      "compensationValues": {"cooling": None, "extruding": 1.0, "heating": None},
     }
 
   @octoprint.plugin.BlueprintPlugin.route("/get_settings_defaults", methods=["GET"])
