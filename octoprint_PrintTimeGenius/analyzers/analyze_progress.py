@@ -42,6 +42,7 @@ def main():
   last_filament = None
   max_filament = None
   most_recent_progress = float("-inf")
+  last_row = None
   for line in output.stdout:
     if not line:
       continue
