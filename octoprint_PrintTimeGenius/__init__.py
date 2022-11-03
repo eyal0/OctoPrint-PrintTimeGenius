@@ -460,6 +460,9 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       "compensationValues": {"cooling": None, "extruding": 1.0, "heating": None},
     }
 
+  def is_blueprint_csrf_protected(self):
+    return True
+
   @octoprint.plugin.BlueprintPlugin.route("/get_settings_defaults", methods=["GET"])
   def get_settings_defaults_as_string(self):
     return json.dumps(self.get_settings_defaults())
