@@ -1,150 +1,165 @@
-# Translations template for OctoPrint-PrintTimeGenius.
-# Copyright (C) 2023 The OctoPrint Project
+# German translations for OctoPrint-PrintTimeGenius.
+# Copyright (C) 2018 The OctoPrint Project
 # This file is distributed under the same license as the
 # OctoPrint-PrintTimeGenius project.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2023.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2018.
 #
-#, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: OctoPrint-PrintTimeGenius 2.3.0\n"
+"Project-Id-Version: OctoPrint-PrintTimeGenius 1.3\n"
 "Report-Msgid-Bugs-To: i18n@octoprint.org\n"
 "POT-Creation-Date: 2023-03-21 17:32+0100\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
+"PO-Revision-Date: 2023-03-21 20:39+0100\n"
+"Last-Translator: \n"
+"Language-Team: de <LL@li.org>\n"
+"Language: de\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Generated-By: Babel 2.11.0\n"
+"X-Generator: Poedit 3.2.2\n"
 
 #: octoprint_PrintTimeGenius/__init__.py:435
 msgid "All gcode analyzers (usually not as good as marlin-calc)"
-msgstr ""
+msgstr "Alle GCode-Analysatoren (normalerweise nicht so gut wie Marlin-calc)"
 
 #: octoprint_PrintTimeGenius/__init__.py:439
 msgid ""
 "Marlin firmware simulation (replaces Octoprint built-in, faster and more "
 "accurate)"
 msgstr ""
+"Marlin Firmware-Simulation (ersetzt OctoPrints interne, ist schneller und "
+"genauer)"
 
 #: octoprint_PrintTimeGenius/__init__.py:443
 msgid "Use Slic3r PE M73 time remaining"
-msgstr ""
+msgstr "Verwende die verbleibende Zeit aus Slic3r PE M73"
 
 #: octoprint_PrintTimeGenius/static/js/PrintTimeGenius.js:47
 msgid "Based on a line-by-line preprocessing of the gcode (good accuracy)"
-msgstr ""
+msgstr "Basiert auf zeilenweiser Verarbeitung des GCodes (gute Genauigkeit)"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:3
 msgid "General options"
-msgstr ""
+msgstr "Allgemeine Optionen"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:4
 msgid "Display precise durations instead of fuzzy ones"
-msgstr ""
+msgstr "Zeige genaue Zeiten anstelle von ungenauen"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:5
 msgid "Show gold stars next to PrintTimeGenius-analyzed gcode files"
 msgstr ""
+"Zeige goldene Sterne an neben von PrintTimeGenius-analysierten GCode-Dateien"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:6
 msgid "Enable OctoPrint's built-in analyzer (slow and unnecessary)"
-msgstr ""
+msgstr "Aktiviere OctoPrints internen Analysator (langsam und unnötig)"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:7
 msgid "Analyzing a file while heating should not affect performace."
 msgstr ""
+"Analyse einer Datei während des Aufheizens sollte die Drucker-Performance nicht "
+"beeinträchtigen."
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:10
 msgid "Allow analysis while heating (only takes effect after saving)"
 msgstr ""
+"Erlaube Analyse während des Aufheizens (wird erst nach dem Speichern aktiv)"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:11
 msgid "Analyzing a file while printing might cause poor printing performace."
 msgstr ""
+"Analyse einer Datei während des Druckens kann schlechte Drucker-Performance "
+"verursachen."
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:14
 msgid "Allow analysis while printing (only takes effect after saving)"
-msgstr ""
+msgstr "Erlaube Analyse während des Druckens (wird erst nach dem Speichern aktiv)"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:14
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:83
 msgid "May slow down your printer"
-msgstr ""
+msgstr "Kann deinen Drucker verlangsamen"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:15
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:52
 msgid "Analyzers"
-msgstr ""
+msgstr "Analysatoren"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:21
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:40
 msgid "Analyze"
-msgstr ""
+msgstr "Analysiere"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:22
 msgid ""
-"You can use this to run an analysis right now and also look at the output"
-" to debug problems."
+"You can use this to run an analysis right now and also look at the output to "
+"debug problems."
 msgstr ""
+"Du kannst dies verwenden, um eine Analyse direkt zu starten und dann in der "
+"Ausgabe nach Fehlern zu suchen."
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:24
 msgid "Files to analyze:"
-msgstr ""
+msgstr "Zu analysierende Dateien:"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:47
 msgid "Advanced"
-msgstr ""
+msgstr "Erweitert"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:53
 msgid "The default analyzers are the suggested settings for all users"
-msgstr ""
+msgstr "Die Vorgabe-Analysatoren sind die empfohlene Einstellung für alle Anwender"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:54
 msgid "Reset analyzers to default"
-msgstr ""
+msgstr "Setze Analysatoren zurück"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:57
 msgid "Description"
-msgstr ""
+msgstr "Beschreibung"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:58
 msgid "Command"
-msgstr ""
+msgstr "Befehl"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:59
 msgid "Enabled"
-msgstr ""
+msgstr "Eingeschaltet"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:69
 msgid "Remove analyzer"
-msgstr ""
+msgstr "Entferne Analysator"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:75
 msgid "Add analyzer"
-msgstr ""
+msgstr "Füge Analysator hinzu"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:78
 msgid "Debug"
-msgstr ""
+msgstr "Fehlersuche"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:79
 msgid "Debug Analysis"
-msgstr ""
+msgstr "Fehlersuche bei der Analyse"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:80
 msgid ""
-"Analyze a file and then <a "
-"href=\"downloads/logs/plugin_PrintTimeGenius_engine.log\">download the "
-"log</a>.\n"
+"Analyze a file and then <a href=\"downloads/logs/plugin_PrintTimeGenius_engine."
+"log\">download the log</a>.\n"
 "        If you see errors, <a href=\"https://github.com/eyal0/OctoPrint-"
 "PrintTimeGenius/issues\">report them</a>."
 msgstr ""
+"Analysiere eine Datei und <a href=\"downloads/logs/plugin_PrintTimeGenius_engine."
+"log\">lade das Log herunter</a>.\n"
+"        Falls du Fehler siehst, <a href=\"https://github.com/eyal0/OctoPrint-"
+"PrintTimeGenius/issues\">melde diese</a>."
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:82
 msgid "Debug Estimates"
-msgstr ""
+msgstr "Fehlersuche bei den Schätzungen"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:85
 msgid ""
@@ -152,65 +167,83 @@ msgid ""
 "OctoPrint's built-in estimates:\n"
 "          <ol>\n"
 "            <li>In settings, go to Logging.</li>\n"
-"            <li>Set \"octoprint.plugins.PrintTimeGenius\" level to "
-"\"DEBUG\".</li>\n"
+"            <li>Set \"octoprint.plugins.PrintTimeGenius\" level to \"DEBUG\".</"
+"li>\n"
 "            <li>Click on the blue plus.</li>\n"
 "            <li>Click on save.</li>\n"
 "          </ol>\n"
 "        </p>\n"
 "        <p>\n"
-"          Now print something and the log will fill with a <a "
-"href=\"https://en.wikipedia.org/wiki/Comma-separated_values\">csv</a>.\n"
-"          <a "
-"href=\"downloads/logs/plugin_PrintTimeGenius_engine.log\">Download the "
-"log</a>, remove unnecessary lines, and import to a spreadsheet.\n"
+"          Now print something and the log will fill with a <a href=\"https://en."
+"wikipedia.org/wiki/Comma-separated_values\">csv</a>.\n"
+"          <a href=\"downloads/logs/plugin_PrintTimeGenius_engine.log\">Download "
+"the log</a>, remove unnecessary lines, and import to a spreadsheet.\n"
 "        </p>"
 msgstr ""
+"Falls du eine Grafik der hiermit geschätzten Druckzeiten im Vergleich zu den "
+"Schätzugen von OctoPrint machen möchtest:\n"
+"          <ol>\n"
+"            <li>In den Einstellungen, wähle Logging.</li>\n"
+"            <li>Setze \"octoprint.plugins.PrintTimeGenius\" auf die Stufe "
+"\"DEBUG\".</li>\n"
+"            <li>Klicke auf das blaue Plus.</li>\n"
+"            <li>Klicke auf Speichern.</li>\n"
+"          </ol>\n"
+"        </p>\n"
+"        <p>\n"
+"          Jetzt drucke etwas und das Log wird mit Daten im <a href=\"https://en."
+"wikipedia.org/wiki/Comma-separated_values\">CSV-Format</a> gefüllt.\n"
+"          <a href=\"downloads/logs/plugin_PrintTimeGenius_engine.log\">Lade das "
+"Log herunter</a>, lösche unnötige Zeilen, und importiere den Rest in eine "
+"Tabellenkalkulation.\n"
+"        </p>"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:97
 msgid "Compensation values"
-msgstr ""
+msgstr "Kompensationswerte"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:101
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:174
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:178
 msgid "Heating"
-msgstr ""
+msgstr "Heizen"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:102
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:175
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:179
 msgid "Extruding"
-msgstr ""
+msgstr "Extrudieren"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:103
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:176
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:180
 msgid "Cooling"
-msgstr ""
+msgstr "Kühlen"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:169
 msgid "Actual"
-msgstr ""
+msgstr "Tatsächlich"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:170
 msgid "Predicted"
-msgstr ""
+msgstr "Vorhergesagt"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:171
 msgid "Compensated"
-msgstr ""
+msgstr "Kompensiert"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:177
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:181
 msgid "Total"
-msgstr ""
+msgstr "Gesamt"
 
 #: octoprint_PrintTimeGenius/templates/PrintTimeGenius_settings.jinja2:213
 msgid ""
-"Remove row, if this is an atypical sample and shouldn't be used for "
-"future compensation"
+"Remove row, if this is an atypical sample and shouldn't be used for future "
+"compensation"
 msgstr ""
+"Lösche diese Zeile, falls dies ein untypisches Beispiel ist und nicht für "
+"zukünftige Kompensationen verwendet werden soll"
 
 #: submodules/Marlin/data/www/moment.min.js:12
 msgid "gggg"
@@ -232,3 +265,5 @@ msgstr ""
 msgid "d"
 msgstr ""
 
+#~ msgid "Choose..."
+#~ msgstr "Auswählen..."
