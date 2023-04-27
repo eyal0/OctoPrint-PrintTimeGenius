@@ -6,7 +6,8 @@ import json
 import sys
 from collections import defaultdict
 import argparse
-if float('.'.join((str(sys.version_info.major), str(sys.version_info.minor)))) < 3.3:
+
+if sys.version_info.major < 3 and sys.version_info.minor < 3:
   from collections import Mapping as collections_Mapping
 else:
   from collections.abc import Mapping as collections_Mapping
