@@ -7,11 +7,11 @@ import sys
 from collections import defaultdict
 import argparse
 
-python_version_above_3_3 = [sys.version_info.major, sys.version_info.minor] > [3, 3]
+python_version_above_3_3 = sys.version_info > (3, 3)
 if python_version_above_3_3:
-	from collections import Mapping as collections_Mapping
+  from collections import Mapping as collections_Mapping
 else:
-	from collections.abc import Mapping as collections_Mapping
+  from collections.abc import Mapping as collections_Mapping
 
 dd = lambda: defaultdict(dd)
 
