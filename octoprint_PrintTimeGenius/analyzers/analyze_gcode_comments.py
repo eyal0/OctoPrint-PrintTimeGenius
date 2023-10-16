@@ -7,7 +7,8 @@ import sys
 from collections import defaultdict
 import argparse
 
-if sys.version_info.major < 3 and sys.version_info.minor < 3:
+python_version_above_3_3 = sys.version_info > (3, 3)
+if python_version_above_3_3:
   from collections import Mapping as collections_Mapping
 else:
   from collections.abc import Mapping as collections_Mapping
