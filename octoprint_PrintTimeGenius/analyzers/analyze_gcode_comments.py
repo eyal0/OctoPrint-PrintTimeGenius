@@ -63,10 +63,15 @@ register_parser = makeRegistrar()
 def process_slic3r_filament(gcode_line):
   """Match a slic3r PE filament line"""
   ret = dd()
-  m = re.match('\s*;\s*filament used\s*=\s*([0-9.]+)\s*mm\s*\(([0-9.]+)cm3\)\s*', gcode_line)
+  m = re.match('\s*;\s*filament used\s*=\s*([0-9.]+)\s*mm\s*\(([0-9.]+)cm3\)\s*|\A\s*;\s*filament used\s*\[mm\]\s*=+\s*([0-9.]+)|\A\s*;\s*filament used\s*\[cm3\]\s*=+\s*([0-9.]+)', gcode_line)
   if m:
-    ret['filament']['tool0']['length'] = float(m.group(1))
-    ret['filament']['tool0']['volume'] = float(m.group(2))
+    if m.group(1) and m.group(2):
+      ret['filament']['tool0']['length'] = float(m.group(1))
+      ret['filament']['tool0']['volume'] = float(m.group(2))
+    elif m.group(3):
+      ret['filament']['tool0']['length'] = float(m.group(3))
+    elif m.group(4):
+      ret['filament']['tool0']['volume'] = float(m.group(4))
   return ret
 
 @register_parser("slic3r_pe_print_time")
