@@ -23,10 +23,9 @@ import flask
 import pkg_resources
 import errno
 from threading import Timer
-from collections import defaultdict
+from collections import defaultdict, abc
 from .printer_config import PrinterConfig
 import psutil
-import collections
 
 def _interpolate(point, left, right):
   """Use the point to interpolate a value from left and right.  point should be a
@@ -183,7 +182,7 @@ def _allow_analysis(printer, settings):
   current_temp = all_temps[-1] # They are sorted so this is the most recent.
   elements_being_heated = 0
   for thermostat in current_temp.values():
-    if not isinstance(thermostat, collections.Mapping) or not 'actual' in thermostat or not 'target' in thermostat or thermostat['target'] is None:
+    if not isinstance(thermostat, abc.Mapping) or not 'actual' in thermostat or not 'target' in thermostat or thermostat['target'] is None:
       continue
     if thermostat['target'] < 30:
       # This element is targeted for less than room temperature so ignore it.
