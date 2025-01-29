@@ -573,10 +573,10 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     for dest in all_files.keys():
       self.unmark_all_pending(dest, all_files[dest])
 
-    # TODO: Remove the below after https://github.com/foosel/OctoPrint/pull/2723 is merged.
+    # TODO: https://github.com/foosel/OctoPrint/pull/2723 has been merged for almost 7 years, test if this monkey patch can be removed
     self._file_manager.original_add_file = self._file_manager.add_file
-    def new_add_file(destination, path, file_object, links=None, allow_overwrite=False, printer_profile=None, analysis=None, display=None):
-      return self._file_manager.original_add_file(destination, path, file_object, links, allow_overwrite, printer_profile, None, display)
+    def new_add_file(destination, path, file_object, links=None, allow_overwrite=False, printer_profile=None, analysis=None, display=None, *args, **kwargs):
+      return self._file_manager.original_add_file(destination, path, file_object, links=links, allow_overwrite=allow_overwrite, printer_profile=printer_profile, analysis=None, display=display, *args, **kwargs)
     self._file_manager.add_file = new_add_file
     # Work around for broken rc2
     if pkg_resources.parse_version(octoprint._version.get_versions()['version']) == pkg_resources.parse_version("1.3.9rc2"):
