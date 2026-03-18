@@ -343,6 +343,7 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
         bedZ = self._plugin._settings.get(["bedZ"])
         if ("printingArea" in new_results and
             "minZ" in new_results["printingArea"] and
+            new_results["printingArea"]["minZ"] is not None and
             bedZ is not None):
           old_minZ = new_results["printingArea"]["minZ"]
           new_minZ = min(bedZ, old_minZ)
