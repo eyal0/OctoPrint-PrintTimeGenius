@@ -365,20 +365,23 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
     # Before we potentially modify the result from analysis, save them.
     results.update({'analysisPending': False})
     try:
-      if not all(x in results
+      if not all(results.get(x) is not None
                  for x in ["progress",
                            "firstFilament",
                            "lastFilament"]):
         return results
       results["analysisPrintTime"] = results["estimatedPrintTime"]
+      first_interp = _interpolate_list(results["progress"], results["firstFilament"])
+      last_interp = _interpolate_list(results["progress"], results["lastFilament"])
+      if first_interp is None or last_interp is None:
+        logger.warning(
+            "Cannot compensate: firstFilament=%s lastFilament=%s are out of range",
+            results["firstFilament"], results["lastFilament"])
+        return results
       results["analysisFirstFilamentPrintTime"] = (
-          results["analysisPrintTime"] - _interpolate_list(
-              results["progress"],
-              results["firstFilament"])[1])
+          results["analysisPrintTime"] - first_interp[1])
       results["analysisLastFilamentPrintTime"] = (
-          results["analysisPrintTime"] - _interpolate_list(
-              results["progress"],
-              results["lastFilament"])[1])
+          results["analysisPrintTime"] - last_interp[1])
       self.compensate_analysis(results) # Adjust based on history
       logger.info("Compensated result: {}".format(results))
     except Exception as e:
