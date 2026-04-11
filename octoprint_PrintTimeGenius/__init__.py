@@ -406,6 +406,13 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
           logger.info("Extracted height from gcode Z moves: {}mm (minZ={}, maxZ={})".format(height, min_z, max_z))
       except Exception as e:
         logger.warning("Failed to extract height from gcode", exc_info=e)
+    # Ensure width and depth are always present in dimensions so OctoPrint's
+    # sprintf("%(width).2fmm × %(depth).2fmm × %(height).2fmm") doesn't get
+    # undefined for those fields (ARM binary can output inf→null which gets
+    # stripped, leaving only height).
+    if "dimensions" in results and isinstance(results["dimensions"], dict):
+      results["dimensions"].setdefault("width", 0)
+      results["dimensions"].setdefault("depth", 0)
     # Before we potentially modify the result from analysis, save them.
     results.update({'analysisPending': False})
     try:
