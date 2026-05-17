@@ -4,6 +4,7 @@ from __future__ import print_function
 import subprocess
 import sys
 import json
+import re
 import os
 import platform
 
@@ -63,6 +64,8 @@ def main():
         last_row = [filepos, time]
     elif line.startswith(b"Analysis:"):
       line = line[len("Analysis:"):]
+      line = re.sub(rb':\s*-?inf\b', b': null', line, flags=re.IGNORECASE)
+      line = re.sub(rb':\s*nan\b', b': null', line, flags=re.IGNORECASE)
       result.update(json.loads(line))
   if last_row:
     progress.append(last_row)

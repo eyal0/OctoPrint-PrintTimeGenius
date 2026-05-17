@@ -10,6 +10,7 @@ from octoprint.filemanager.analysis import AnalysisAborted
 from flask_babel import gettext
 import logging
 import bisect
+import re
 import sarge
 import json
 import shlex
@@ -117,10 +118,12 @@ class GeniusEstimator(PrintTimeEstimator):
       return None # We're not even in range yet.
     # We advanced to a new index, let's make new estimates.
     if (not "firstFilamentPrintTime" in self._current_history and
+        self._metadata["analysis"]["firstFilament"] is not None and
         progress > self._metadata["analysis"]["firstFilament"]):
       self._current_history["firstFilamentPrintTime"] = printTime
     if (not "lastFilamentPrintTime" in self._current_history or
-        progress <= self._metadata["analysis"]["lastFilament"]):
+        (self._metadata["analysis"]["lastFilament"] is None or
+         progress <= self._metadata["analysis"]["lastFilament"])):
       self._current_history["lastFilamentPrintTime"] = printTime
     interpolation = _interpolate(progress, self._progress[self._current_progress_index], self._progress[self._current_progress_index+1])
     # This is our best guess for the total print time.
@@ -343,6 +346,7 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
         bedZ = self._plugin._settings.get(["bedZ"])
         if ("printingArea" in new_results and
             "minZ" in new_results["printingArea"] and
+            new_results["printingArea"]["minZ"] is not None and
             bedZ is not None):
           old_minZ = new_results["printingArea"]["minZ"]
           new_minZ = min(bedZ, old_minZ)
@@ -352,6 +356,15 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
             if ("dimensions" in new_results and
                 "height" in new_results["dimensions"]):
               new_results["dimensions"]["height"] += old_minZ - new_minZ
+        # Don't overwrite existing non-null values with null from the analyzer.
+        # The ARM binary can output inf→null for printingArea/dimensions while
+        # the built-in OctoPrint analysis may have valid values.
+        for key in ("printingArea", "dimensions"):
+          if key in new_results and isinstance(new_results[key], dict):
+            new_results[key] = {k: v for k, v in new_results[key].items()
+                                if v is not None}
+            if not new_results[key]:
+              del new_results[key]
         results.update(new_results)
         logger.info("Merged result: {}".format(results))
       except AnalysisAborted as e:
@@ -362,23 +375,64 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
       finally:
         if sarge_job:
           sarge_job.close()
+    # If dimensions are missing (e.g. aarch64 binary outputs inf→null which gets stripped),
+    # do a quick scan of the gcode to extract height from Z moves.
+    if "height" not in results.get("dimensions", {}):
+      try:
+        min_z = None
+        max_z = None
+        z_pattern = re.compile(r'^[Gg][01][\s,][^;\n]*[Zz]([\d.]+)', re.MULTILINE)
+        with open(self._current.absolute_path, 'r', errors='replace') as gcode_file:
+          for line in gcode_file:
+            m = z_pattern.match(line)
+            if m:
+              z = float(m.group(1))
+              if min_z is None or z < min_z:
+                min_z = z
+              if max_z is None or z > max_z:
+                max_z = z
+        if max_z is not None:
+          height = max_z - (min_z or 0)
+          dims = results.setdefault("dimensions", {})
+          dims["height"] = height
+          # width/depth default to 0 so OctoPrint's sprintf("%(width).2f × %(depth).2f × %(height).2f")
+          # doesn't receive undefined and throw a TypeError in the file list view.
+          dims.setdefault("width", 0)
+          dims.setdefault("depth", 0)
+          # Also populate printingArea.maxZ — the Dashboard frontend uses maxZ for height progress.
+          area = results.setdefault("printingArea", {})
+          area.setdefault("maxZ", max_z)
+          area.setdefault("minZ", min_z or 0)
+          logger.info("Extracted height from gcode Z moves: {}mm (minZ={}, maxZ={})".format(height, min_z, max_z))
+      except Exception as e:
+        logger.warning("Failed to extract height from gcode", exc_info=e)
+    # Ensure width and depth are always present in dimensions so OctoPrint's
+    # sprintf("%(width).2fmm × %(depth).2fmm × %(height).2fmm") doesn't get
+    # undefined for those fields (ARM binary can output inf→null which gets
+    # stripped, leaving only height).
+    if "dimensions" in results and isinstance(results["dimensions"], dict):
+      results["dimensions"].setdefault("width", 0)
+      results["dimensions"].setdefault("depth", 0)
     # Before we potentially modify the result from analysis, save them.
     results.update({'analysisPending': False})
     try:
-      if not all(x in results
+      if not all(results.get(x) is not None
                  for x in ["progress",
                            "firstFilament",
                            "lastFilament"]):
         return results
       results["analysisPrintTime"] = results["estimatedPrintTime"]
+      first_interp = _interpolate_list(results["progress"], results["firstFilament"])
+      last_interp = _interpolate_list(results["progress"], results["lastFilament"])
+      if first_interp is None or last_interp is None:
+        logger.warning(
+            "Cannot compensate: firstFilament=%s lastFilament=%s are out of range",
+            results["firstFilament"], results["lastFilament"])
+        return results
       results["analysisFirstFilamentPrintTime"] = (
-          results["analysisPrintTime"] - _interpolate_list(
-              results["progress"],
-              results["firstFilament"])[1])
+          results["analysisPrintTime"] - first_interp[1])
       results["analysisLastFilamentPrintTime"] = (
-          results["analysisPrintTime"] - _interpolate_list(
-              results["progress"],
-              results["lastFilament"])[1])
+          results["analysisPrintTime"] - last_interp[1])
       self.compensate_analysis(results) # Adjust based on history
       logger.info("Compensated result: {}".format(results))
     except Exception as e:
