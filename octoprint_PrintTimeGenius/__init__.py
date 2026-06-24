@@ -118,12 +118,12 @@ class GeniusEstimator(PrintTimeEstimator):
       return None # We're not even in range yet.
     # We advanced to a new index, let's make new estimates.
     if (not "firstFilamentPrintTime" in self._current_history and
-        self._metadata["analysis"]["firstFilament"] is not None and
-        progress > self._metadata["analysis"]["firstFilament"]):
+        self._metadata["analysis"].get("firstFilament") is not None and
+        progress > self._metadata["analysis"].get("firstFilament")):
       self._current_history["firstFilamentPrintTime"] = printTime
     if (not "lastFilamentPrintTime" in self._current_history or
-        (self._metadata["analysis"]["lastFilament"] is None or
-         progress <= self._metadata["analysis"]["lastFilament"])):
+        (self._metadata["analysis"].get("lastFilament") is None or
+         progress <= self._metadata["analysis"].get("lastFilament"))):
       self._current_history["lastFilamentPrintTime"] = printTime
     interpolation = _interpolate(progress, self._progress[self._current_progress_index], self._progress[self._current_progress_index+1])
     # This is our best guess for the total print time.
