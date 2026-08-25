@@ -528,7 +528,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
           yaml.safe_dump(data, print_history_stream)
       except:
         self._logger.exception("Save print_history.yaml failed")
-        abort()
+        flask.abort(500)
       return flask.make_response("", 200)
 
   ##~~ EventHandlerPlugin API
