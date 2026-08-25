@@ -11,7 +11,7 @@ $(function() {
     self.settingsViewModel = parameters[0];
     self.printerStateViewModel = parameters[1];
     self.filesViewModel = parameters[2];
-    self.selectedGcodes = ko.observable();
+    self.selectedGcodes = ko.observableArray();
     self.print_history = ko.observableArray();
     self.settings_visible = ko.observable(false);
     self.version = undefined;
