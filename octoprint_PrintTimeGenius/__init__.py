@@ -337,7 +337,13 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
           raise Exception(results_err)
         logger.info("Sarge output: {}".format(results_err))
         logger.info("Result: {}".format(results_text))
-        new_results = json.loads(results_text)
+        raw_results = json.loads(results_text)
+        new_results = json.loads(results_text, parse_constant=lambda _: None)
+        timing_keys = ("estimatedPrintTime", "progress", "firstFilament", "lastFilament")
+        if any(new_results.get(key) != raw_results.get(key) for key in timing_keys):
+          logger.warning("Dropping non-finite timing results from: {}".format(command))
+          for key in timing_keys:
+            new_results.pop(key, None)
         bedZ = self._plugin._settings.get(["bedZ"])
         if ("printingArea" in new_results and
             "minZ" in new_results["printingArea"] and
@@ -349,7 +355,8 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
             logger.info("Adjusting minZ ({}) to match bedZ ({})".format(old_minZ, bedZ))
             new_results["printingArea"]["minZ"] = new_minZ
             if ("dimensions" in new_results and
-                "height" in new_results["dimensions"]):
+                "height" in new_results["dimensions"] and
+                new_results["dimensions"]["height"] is not None):
               new_results["dimensions"]["height"] += old_minZ - new_minZ
         # Don't overwrite existing non-null values with null from the analyzer.
         # The ARM binary can output inf→null for printingArea/dimensions while
