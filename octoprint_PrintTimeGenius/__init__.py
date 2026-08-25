@@ -691,7 +691,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
           yaml.safe_dump(data, printer_config_stream)
           self._old_printer_config = self._current_config.as_list()
       except:
-        logger.exception("Save printer_config.yaml failed")
+        self._logger.exception("Save printer_config.yaml failed")
 
   def get_printer_config(self):
     """Return the latest printer config."""
