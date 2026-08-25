@@ -160,9 +160,12 @@ $(function() {
       }
 
       self.exactDurations.subscribe(function (newValue) {
-        self.printerStateViewModel.estimatedPrintTime.valueHasMutated();
-        self.printerStateViewModel.lastPrintTime.valueHasMutated();
-        self.printerStateViewModel.printTimeLeft.valueHasMutated();
+        for (let name of ["estimatedPrintTime", "lastPrintTime", "printTimeLeft"]) {
+          let observable = self.printerStateViewModel[name];
+          if (ko.isObservable(observable)) {
+            observable.valueHasMutated();
+          }
+        }
       });
       // Force an update because this is called after the format function has already run.
       self.exactDurations.valueHasMutated();

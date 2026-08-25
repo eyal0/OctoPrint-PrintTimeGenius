@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 from __future__ import division
 
+import octoprint.filemanager
 import octoprint.plugin
 from octoprint.printer.estimation import PrintTimeEstimator
 from octoprint.filemanager.analysis import GcodeAnalysisQueue
@@ -548,8 +549,11 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       except IOError as e:
         if e.errno != errno.ENOENT:
           raise
-      metadata = self._file_manager.get_metadata(payload["origin"], payload["path"])
-      if "analysis" not in metadata or "analysisPrintTime" not in metadata["analysis"]:
+      try:
+        metadata = self._file_manager.get_metadata(payload["origin"], payload["path"])
+      except octoprint.filemanager.NoSuchStorage:
+        return
+      if not metadata or "analysis" not in metadata or "analysisPrintTime" not in metadata["analysis"]:
         return
       self._current_history["payload"] = payload
       self._current_history["timestamp"] = time.time()
