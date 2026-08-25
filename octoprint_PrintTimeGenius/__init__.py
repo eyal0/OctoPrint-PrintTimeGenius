@@ -650,6 +650,11 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
 	less=["less/PrintTimeGenius.less"]
     )
 
+  ##~~ TemplatePlugin mixin
+
+  def is_template_autoescaped(self):
+    return True
+
   ##~~ Gcode Analysis Hook
   def custom_gcode_analysis_queue(self, *args, **kwargs):
     return dict(gcode=lambda finished_callback: GeniusAnalysisQueue(

@@ -78,7 +78,7 @@
         <h3>{{ _('Debug') }}</h3>
         <h4>{{ _('Debug Analysis') }}</h4>
         {{ _('Analyze a file and then <a href="downloads/logs/plugin_PrintTimeGenius_engine.log">download the log</a>.
-        If you see errors, <a href="https://github.com/eyal0/OctoPrint-PrintTimeGenius/issues">report them</a>.') }}
+        If you see errors, <a href="https://github.com/eyal0/OctoPrint-PrintTimeGenius/issues">report them</a>.')|safe }}
         <h4>{{ _('Debug Estimates') }}</h4>
         <p><span class="label label-important">{{ _('May slow down your printer') }}</span>
           <!-- Only translate the text, not the HTML! -->
@@ -93,7 +93,7 @@
         <p>
           Now print something and the log will fill with a <a href="https://en.wikipedia.org/wiki/Comma-separated_values">csv</a>.
           <a href="downloads/logs/plugin_PrintTimeGenius_engine.log">Download the log</a>, remove unnecessary lines, and import to a spreadsheet.
-        </p>') }}
+        </p>')|safe }}
         <h3>{{ _('Compensation values') }}</h3>
         <table class="print-time-genius-table" style="border: 2px solid black;">
           <thead style="border: 1px solid black;">
