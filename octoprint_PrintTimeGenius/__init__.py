@@ -19,7 +19,7 @@ import yaml
 import flask
 import errno
 from threading import Timer
-from collections import defaultdict, abc
+from collections import defaultdict
 from .printer_config import PrinterConfig
 import psutil
 
@@ -172,15 +172,12 @@ def _allow_analysis(printer, settings):
   if not settings.get(['allowAnalysisWhileHeating']):
     # We don't allow while heating so no need to test all the temps below.
     return False
-  if not printer._temps:
+  current_temp = printer.get_current_temperatures()
+  if not current_temp:
     return True # We'll allow it if there are no temps yet.
-  all_temps = list(printer._temps)
-  if not all_temps:
-    return True # We'll allow it if there are no temps yet.
-  current_temp = all_temps[-1] # They are sorted so this is the most recent.
   elements_being_heated = 0
   for thermostat in current_temp.values():
-    if not isinstance(thermostat, abc.Mapping) or 'actual' not in thermostat or 'target' not in thermostat or thermostat['target'] is None:
+    if thermostat.get('actual') is None or thermostat.get('target') is None:
       continue
     if thermostat['target'] < 30:
       # This element is targeted for less than room temperature so ignore it.
