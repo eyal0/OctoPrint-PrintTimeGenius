@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from __future__ import division
 
 import octoprint.plugin
-import octoprint.filemanager.storage
 from octoprint.printer.estimation import PrintTimeEstimator
 from octoprint.filemanager.analysis import GcodeAnalysisQueue
 from octoprint.filemanager.analysis import AnalysisAborted
@@ -13,11 +12,9 @@ import bisect
 import re
 import sarge
 import json
-import shlex
 import time
 import os
 import sys
-import types
 import yaml
 import flask
 import errno
