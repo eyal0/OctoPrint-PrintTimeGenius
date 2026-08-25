@@ -75,7 +75,7 @@ class GeniusEstimator(PrintTimeEstimator):
     except octoprint.filemanager.NoSuchStorage:
       #The metadata is not found or maybe not yet written.
       self._metadata = None
-    if not self._metadata or not "analysis" in self._metadata or not "progress" in self._metadata["analysis"]:
+    if not self._metadata or "analysis" not in self._metadata or "progress" not in self._metadata["analysis"]:
       self._progress = None
     else:
       self._progress = self._metadata["analysis"]["progress"]
@@ -114,11 +114,11 @@ class GeniusEstimator(PrintTimeEstimator):
     if self._current_progress_index < 0:
       return None # We're not even in range yet.
     # We advanced to a new index, let's make new estimates.
-    if (not "firstFilamentPrintTime" in self._current_history and
+    if ("firstFilamentPrintTime" not in self._current_history and
         self._metadata["analysis"].get("firstFilament") is not None and
         progress > self._metadata["analysis"].get("firstFilament")):
       self._current_history["firstFilamentPrintTime"] = printTime
-    if (not "lastFilamentPrintTime" in self._current_history or
+    if ("lastFilamentPrintTime" not in self._current_history or
         (self._metadata["analysis"].get("lastFilament") is None or
          progress <= self._metadata["analysis"].get("lastFilament"))):
       self._current_history["lastFilamentPrintTime"] = printTime
@@ -180,7 +180,7 @@ def _allow_analysis(printer, settings):
   current_temp = all_temps[-1] # They are sorted so this is the most recent.
   elements_being_heated = 0
   for thermostat in current_temp.values():
-    if not isinstance(thermostat, abc.Mapping) or not 'actual' in thermostat or not 'target' in thermostat or thermostat['target'] is None:
+    if not isinstance(thermostat, abc.Mapping) or 'actual' not in thermostat or 'target' not in thermostat or thermostat['target'] is None:
       continue
     if thermostat['target'] < 30:
       # This element is targeted for less than room temperature so ignore it.
@@ -552,7 +552,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
         if e.errno != errno.ENOENT:
           raise
       metadata = self._file_manager.get_metadata(payload["origin"], payload["path"])
-      if not "analysis" in metadata or not "analysisPrintTime" in metadata["analysis"]:
+      if "analysis" not in metadata or "analysisPrintTime" not in metadata["analysis"]:
         return
       self._current_history["payload"] = payload
       self._current_history["timestamp"] = time.time()
