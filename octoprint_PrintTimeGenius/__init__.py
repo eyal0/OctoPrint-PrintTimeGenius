@@ -503,7 +503,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
 
   @octoprint.plugin.BlueprintPlugin.route("/get_settings_defaults", methods=["GET"])
   def get_settings_defaults_as_string(self):
-    return json.dumps(self.get_settings_defaults())
+    return flask.jsonify(self.get_settings_defaults())
 
   @octoprint.plugin.BlueprintPlugin.route("/print_history", methods=["POST", "GET"])
   def print_history_request(self):
@@ -517,7 +517,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       except IOError as e:
         if e.errno != errno.ENOENT:
           raise
-      return json.dumps(data)
+      return flask.jsonify(data)
     elif flask.request.method == "POST":
       try:
         data = json.loads(flask.request.data)
