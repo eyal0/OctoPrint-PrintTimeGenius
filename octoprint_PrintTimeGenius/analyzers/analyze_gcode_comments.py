@@ -36,7 +36,7 @@ TIME_UNITS_TO_SECONDS = defaultdict(
 def process_time_text(time_text):
   """Given a string like "5 minutes, 4 seconds + 82 hours" return the total in seconds"""
   total = 0
-  for time_part in re.finditer('([0-9.]+)\s*([a-zA-Z]+)', time_text):
+  for time_part in re.finditer(r'([0-9.]+)\s*([a-zA-Z]+)', time_text):
     quantity = float(time_part.group(1))
     units = TIME_UNITS_TO_SECONDS[time_part.group(2)]
     total += quantity * units
@@ -63,7 +63,7 @@ register_parser = makeRegistrar()
 def process_slic3r_filament(gcode_line):
   """Match a slic3r PE filament line"""
   ret = dd()
-  m = re.match('\s*;\s*filament used\s*=\s*([0-9.]+)\s*mm\s*\(([0-9.]+)cm3\)\s*|\A\s*;\s*filament used\s*\[mm\]\s*=+\s*([0-9.]+)|\A\s*;\s*filament used\s*\[cm3\]\s*=+\s*([0-9.]+)', gcode_line)
+  m = re.match(r'\s*;\s*filament used\s*=\s*([0-9.]+)\s*mm\s*\(([0-9.]+)cm3\)\s*|\A\s*;\s*filament used\s*\[mm\]\s*=+\s*([0-9.]+)|\A\s*;\s*filament used\s*\[cm3\]\s*=+\s*([0-9.]+)', gcode_line)
   if m:
     if m.group(1) and m.group(2):
       ret['filament']['tool0']['length'] = float(m.group(1))
@@ -81,7 +81,7 @@ def process_slic3r_filament(gcode_line):
 def process_slic3r_print_time(gcode_line):
   """Match a Slic3r PE print time estimate"""
   ret = dd()
-  m = re.match('\s*;\s*estimated printing time(?:.*normal.*)?\s*=\s*(.*)\s*', gcode_line)
+  m = re.match(r'\s*;\s*estimated printing time(?:.*normal.*)?\s*=\s*(.*)\s*', gcode_line)
   if m:
     ret['estimatedPrintTime'] = process_time_text(m.group(1))
   return ret
@@ -91,7 +91,7 @@ def process_slic3r_print_time(gcode_line):
 def process_slic3r_print_time_remaining(gcode_line):
   """Match a Slic3r PE print time remaining estimate"""
   ret = dd()
-  m = re.match('\s*M73\s+(?:P([0-9.]+)\s+)?R([0-9.]+)\s*', gcode_line)
+  m = re.match(r'\s*M73\s+(?:P([0-9.]+)\s+)?R([0-9.]+)\s*', gcode_line)
   if m:
     minutes_text = m.group(2)
     minutes_elapsed = float(minutes_text)
@@ -108,7 +108,7 @@ def process_slic3r_print_time_remaining(gcode_line):
 def process_cura330_print_time(gcode_line):
   """Match Cura330 time estimate"""
   ret = dd()
-  m = re.match('\s*;\s*TIME_ELAPSED\s*:\s*([0-9.]+)\s*', gcode_line)
+  m = re.match(r'\s*;\s*TIME_ELAPSED\s*:\s*([0-9.]+)\s*', gcode_line)
   if m:
     time_text = m.group(1)
     time_elapsed = float(time_text)
@@ -125,7 +125,7 @@ def process_cura330_print_time(gcode_line):
 def process_cura330_filament(gcode_line):
   """Match Cura330 filament used"""
   ret = dd()
-  m = re.match('\s*;\s*Filament used\s*:\s*([0-9.]+)\s*m\s*', gcode_line)
+  m = re.match(r'\s*;\s*Filament used\s*:\s*([0-9.]+)\s*m\s*', gcode_line)
   if m:
     filament_meters_text = m.group(1)
     ret['filament']['tool0']['length'] = float(filament_meters_text) * 1000
@@ -136,7 +136,7 @@ def process_cura330_filament(gcode_line):
 def process_cura1504_print_time(gcode_line):
   """Match Cura1504 time estimate"""
   ret = dd()
-  m = re.match('\s*;\s*Print time\s*:\s*([0-9.]+)\s*m\s+(.*)\s*', gcode_line)
+  m = re.match(r'\s*;\s*Print time\s*:\s*([0-9.]+)\s*m\s+(.*)\s*', gcode_line)
   if m:
     ret['estimatedPrintTime'] = process_time_text(m.group(1))
   return ret
@@ -146,7 +146,7 @@ def process_cura1504_print_time(gcode_line):
 def process_simplify3d_print_time(gcode_line):
   """Match Simplify3D time estimate"""
   ret = dd()
-  m = re.match('\s*;\s*Build time\s*:\s*(.*)\s*', gcode_line)
+  m = re.match(r'\s*;\s*Build time\s*:\s*(.*)\s*', gcode_line)
   if m:
     ret['estimatedPrintTime'] = process_time_text(m.group(1))
   return ret
@@ -157,7 +157,7 @@ def process_simplify3d_print_time(gcode_line):
 def process_simplify3d_filament_length(gcode_line):
   """Match Simplify3D filament length"""
   ret = dd()
-  m = re.match('\s*;\s*Filament length\s*:\s*([0-9.]+)\s*mm\s*', gcode_line)
+  m = re.match(r'\s*;\s*Filament length\s*:\s*([0-9.]+)\s*mm\s*', gcode_line)
   if m:
     filament_millimeters_text = m.group(1)
     ret['filament']['tool0']['length'] = float(filament_millimeters_text)
@@ -169,7 +169,7 @@ def process_simplify3d_filament_length(gcode_line):
 def process_simplify3d_filament_volume(gcode_line):
   """Match Simplify3D filament volume"""
   ret = dd()
-  m = re.match('\s*;\s*Plastic volume\s*:\s*([0-9.]+)\s*mm\^3\s*', gcode_line)
+  m = re.match(r'\s*;\s*Plastic volume\s*:\s*([0-9.]+)\s*mm\^3\s*', gcode_line)
   if m:
     filament_cubic_millimeters_text = m.group(1)
     ret['filament']['tool0']['volume'] = float(filament_cubic_millimeters_text) / 1000
