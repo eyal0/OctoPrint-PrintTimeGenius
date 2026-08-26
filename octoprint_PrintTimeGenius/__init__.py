@@ -2,8 +2,8 @@
 from __future__ import absolute_import
 from __future__ import division
 
+import octoprint.filemanager
 import octoprint.plugin
-import octoprint.filemanager.storage
 from octoprint.printer.estimation import PrintTimeEstimator
 from octoprint.filemanager.analysis import GcodeAnalysisQueue
 from octoprint.filemanager.analysis import AnalysisAborted
@@ -13,16 +13,14 @@ import bisect
 import re
 import sarge
 import json
-import shlex
 import time
 import os
 import sys
-import types
 import yaml
 import flask
 import errno
 from threading import Timer
-from collections import defaultdict, abc
+from collections import defaultdict
 from .printer_config import PrinterConfig
 import psutil
 
@@ -78,7 +76,7 @@ class GeniusEstimator(PrintTimeEstimator):
     except octoprint.filemanager.NoSuchStorage:
       #The metadata is not found or maybe not yet written.
       self._metadata = None
-    if not self._metadata or not "analysis" in self._metadata or not "progress" in self._metadata["analysis"]:
+    if not self._metadata or "analysis" not in self._metadata or "progress" not in self._metadata["analysis"]:
       self._progress = None
     else:
       self._progress = self._metadata["analysis"]["progress"]
@@ -117,11 +115,11 @@ class GeniusEstimator(PrintTimeEstimator):
     if self._current_progress_index < 0:
       return None # We're not even in range yet.
     # We advanced to a new index, let's make new estimates.
-    if (not "firstFilamentPrintTime" in self._current_history and
+    if ("firstFilamentPrintTime" not in self._current_history and
         self._metadata["analysis"].get("firstFilament") is not None and
         progress > self._metadata["analysis"].get("firstFilament")):
       self._current_history["firstFilamentPrintTime"] = printTime
-    if (not "lastFilamentPrintTime" in self._current_history or
+    if ("lastFilamentPrintTime" not in self._current_history or
         (self._metadata["analysis"].get("lastFilament") is None or
          progress <= self._metadata["analysis"].get("lastFilament"))):
       self._current_history["lastFilamentPrintTime"] = printTime
@@ -175,15 +173,12 @@ def _allow_analysis(printer, settings):
   if not settings.get(['allowAnalysisWhileHeating']):
     # We don't allow while heating so no need to test all the temps below.
     return False
-  if not printer._temps:
+  current_temp = printer.get_current_temperatures()
+  if not current_temp:
     return True # We'll allow it if there are no temps yet.
-  all_temps = list(printer._temps)
-  if not all_temps:
-    return True # We'll allow it if there are no temps yet.
-  current_temp = all_temps[-1] # They are sorted so this is the most recent.
   elements_being_heated = 0
   for thermostat in current_temp.values():
-    if not isinstance(thermostat, abc.Mapping) or not 'actual' in thermostat or not 'target' in thermostat or thermostat['target'] is None:
+    if thermostat.get('actual') is None or thermostat.get('target') is None:
       continue
     if thermostat['target'] < 30:
       # This element is targeted for less than room temperature so ignore it.
@@ -342,7 +337,13 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
           raise Exception(results_err)
         logger.info("Sarge output: {}".format(results_err))
         logger.info("Result: {}".format(results_text))
-        new_results = json.loads(results_text)
+        raw_results = json.loads(results_text)
+        new_results = json.loads(results_text, parse_constant=lambda _: None)
+        timing_keys = ("estimatedPrintTime", "progress", "firstFilament", "lastFilament")
+        if any(new_results.get(key) != raw_results.get(key) for key in timing_keys):
+          logger.warning("Dropping non-finite timing results from: {}".format(command))
+          for key in timing_keys:
+            new_results.pop(key, None)
         bedZ = self._plugin._settings.get(["bedZ"])
         if ("printingArea" in new_results and
             "minZ" in new_results["printingArea"] and
@@ -354,7 +355,8 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
             logger.info("Adjusting minZ ({}) to match bedZ ({})".format(old_minZ, bedZ))
             new_results["printingArea"]["minZ"] = new_minZ
             if ("dimensions" in new_results and
-                "height" in new_results["dimensions"]):
+                "height" in new_results["dimensions"] and
+                new_results["dimensions"]["height"] is not None):
               new_results["dimensions"]["height"] += old_minZ - new_minZ
         # Don't overwrite existing non-null values with null from the analyzer.
         # The ARM binary can output inf→null for printingArea/dimensions while
@@ -509,7 +511,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
 
   @octoprint.plugin.BlueprintPlugin.route("/get_settings_defaults", methods=["GET"])
   def get_settings_defaults_as_string(self):
-    return json.dumps(self.get_settings_defaults())
+    return flask.jsonify(self.get_settings_defaults())
 
   @octoprint.plugin.BlueprintPlugin.route("/print_history", methods=["POST", "GET"])
   def print_history_request(self):
@@ -523,7 +525,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       except IOError as e:
         if e.errno != errno.ENOENT:
           raise
-      return json.dumps(data)
+      return flask.jsonify(data)
     elif flask.request.method == "POST":
       try:
         data = json.loads(flask.request.data)
@@ -531,7 +533,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
           yaml.safe_dump(data, print_history_stream)
       except:
         self._logger.exception("Save print_history.yaml failed")
-        abort()
+        flask.abort(500)
       return flask.make_response("", 200)
 
   ##~~ EventHandlerPlugin API
@@ -554,8 +556,11 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       except IOError as e:
         if e.errno != errno.ENOENT:
           raise
-      metadata = self._file_manager.get_metadata(payload["origin"], payload["path"])
-      if not "analysis" in metadata or not "analysisPrintTime" in metadata["analysis"]:
+      try:
+        metadata = self._file_manager.get_metadata(payload["origin"], payload["path"])
+      except octoprint.filemanager.NoSuchStorage:
+        return
+      if not metadata or "analysis" not in metadata or "analysisPrintTime" not in metadata["analysis"]:
         return
       self._current_history["payload"] = payload
       self._current_history["timestamp"] = time.time()
@@ -656,6 +661,11 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
 	less=["less/PrintTimeGenius.less"]
     )
 
+  ##~~ TemplatePlugin mixin
+
+  def is_template_autoescaped(self):
+    return True
+
   ##~~ Gcode Analysis Hook
   def custom_gcode_analysis_queue(self, *args, **kwargs):
     return dict(gcode=lambda finished_callback: GeniusAnalysisQueue(
@@ -694,7 +704,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
           yaml.safe_dump(data, printer_config_stream)
           self._old_printer_config = self._current_config.as_list()
       except:
-        logger.exception("Save printer_config.yaml failed")
+        self._logger.exception("Save printer_config.yaml failed")
 
   def get_printer_config(self):
     """Return the latest printer config."""
