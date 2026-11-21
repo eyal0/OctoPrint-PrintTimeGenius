@@ -34,7 +34,7 @@ $(function() {
     self.original_processProgressData = self.printerStateViewModel._processProgressData;
     self.printerStateViewModel._processProgressData = function(data) {
       self.original_processProgressData(data);
-      if (data.printTimeLeft) {
+      if (data && data.printTimeLeft) {
         self.printerStateViewModel.progress(
             (data.printTime||0) /
               ((data.printTime||0) + (data.printTimeLeft))
