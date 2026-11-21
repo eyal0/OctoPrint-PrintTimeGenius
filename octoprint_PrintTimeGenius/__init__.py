@@ -627,7 +627,10 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
 
   def unmark_all_pending(self, dest, all_files):
     for k, v in all_files.items():
-      if 'analysis' in v and 'analysisPending' in v['analysis'] and v['analysis']['analysisPending']:
+      analysis = v.get('analysis') or {}
+      # OctoPrint 2.0+ lists files without analysis as None and moves keys that
+      # it doesn't know about into "additional".
+      if analysis.get('analysisPending') or (analysis.get('additional') or {}).get('analysisPending'):
         self._file_manager.set_additional_metadata(dest, v['path'], 'analysis', {'analysisPending': False}, merge=True)
       if 'children' in v:
         self.unmark_all_pending(dest, v['children'])
@@ -646,7 +649,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
 
     self._logger.info("Starting PrintTimeGenius")
     # Unmark all pending analyses.
-    all_files = self._file_manager.list_files()
+    all_files = self._file_manager.list_files(recursive=True)
     for dest in all_files.keys():
       self.unmark_all_pending(dest, all_files[dest])
 
