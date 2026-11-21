@@ -109,6 +109,7 @@ $(function() {
       self.analyzers = printTimeGeniusSettings.analyzers;
       self.exactDurations = printTimeGeniusSettings.exactDurations;
       self.showStars = printTimeGeniusSettings.showStars;
+      self.overrideM73 = printTimeGeniusSettings.overrideM73;
       self.enableOctoPrintAnalyzer = printTimeGeniusSettings.enableOctoPrintAnalyzer;
       self.allowAnalysisWhilePrinting = printTimeGeniusSettings.allowAnalysisWhilePrinting;
       self.allowAnalysisWhileHeating = printTimeGeniusSettings.allowAnalysisWhileHeating;

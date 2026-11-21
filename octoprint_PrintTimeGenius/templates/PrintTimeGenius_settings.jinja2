@@ -3,6 +3,10 @@
     <h3>{{ _('General options') }}</h3>
     <label class="checkbox"><input type="checkbox" data-bind="checked: exactDurations">{{ _('Display precise durations instead of fuzzy ones') }}</label>
     <label class="checkbox"><input type="checkbox" data-bind="checked: showStars">{{ _('Show gold stars next to PrintTimeGenius-analyzed gcode files') }}</label>
+    <label title="{{ _('OctoPrint 2.0 and later show the time remaining from M73 commands that slicers put in the gcode instead of the PrintTimeGenius estimate. This sets trustM73 of the Serial Connector to false. The printer still receives the M73 commands.') }}"
+           class="checkbox"><input
+                              type="checkbox"
+                              data-bind="checked: overrideM73">{{ _('Use PrintTimeGenius instead of M73 time remaining from the slicer (OctoPrint 2.0+, takes effect on the next printer connection)') }}</label>
     <label class="checkbox"><input type="checkbox" data-bind="checked: enableOctoPrintAnalyzer">{{ _('Enable OctoPrint\'s built-in analyzer (slow and unnecessary)') }}</label>
     <label title="{{ _('Analyzing a file while heating should not affect performace.') }}"
            class="checkbox"><input
