@@ -502,9 +502,36 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       "allowAnalysisWhilePrinting": False,
       "allowAnalysisWhileHeating": True,
       "showStars": True,
+      "overrideM73": True,
       "bedZ": 0,
       "compensationValues": {"cooling": None, "extruding": 1.0, "heating": None},
     }
+
+  def on_settings_save(self, data):
+    old_override = self._settings.get_boolean(["overrideM73"])
+    result = octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+    if self._settings.get_boolean(["overrideM73"]) != old_override:
+      self.apply_m73_override(restore=True)
+    return result
+
+  def apply_m73_override(self, restore=False):
+    """OctoPrint 2.0+ uses the time remaining from M73 commands in the gcode
+    instead of asking the estimator, so PrintTimeGenius would never be used for
+    gcode from slicers that add M73.  The serial connector only reads trustM73
+    when it connects to the printer.
+    """
+    if not self._plugin_manager.get_plugin("serial_connector"):
+      return # OctoPrint before 2.0 doesn't use M73 for estimates.
+    trust_m73_path = ["plugins", "serial_connector", "trustM73"]
+    if self._settings.get_boolean(["overrideM73"]):
+      if self._settings.global_get_boolean(trust_m73_path) is not False:
+        self._logger.info("Setting trustM73 to false so that PrintTimeGenius is used instead of M73 from the gcode.")
+        self._settings.global_set_boolean(trust_m73_path, False)
+        self._settings.save()
+    elif restore and self._settings.global_get_boolean(trust_m73_path) is False:
+      self._logger.info("Restoring the default for trustM73.")
+      self._settings.global_remove(trust_m73_path)
+      self._settings.save()
 
   def is_blueprint_csrf_protected(self):
     return True
@@ -600,7 +627,10 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
 
   def unmark_all_pending(self, dest, all_files):
     for k, v in all_files.items():
-      if 'analysis' in v and 'analysisPending' in v['analysis'] and v['analysis']['analysisPending']:
+      analysis = v.get('analysis') or {}
+      # OctoPrint 2.0+ lists files without analysis as None and moves keys that
+      # it doesn't know about into "additional".
+      if analysis.get('analysisPending') or (analysis.get('additional') or {}).get('analysisPending'):
         self._file_manager.set_additional_metadata(dest, v['path'], 'analysis', {'analysisPending': False}, merge=True)
       if 'children' in v:
         self.unmark_all_pending(dest, v['children'])
@@ -619,7 +649,7 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
 
     self._logger.info("Starting PrintTimeGenius")
     # Unmark all pending analyses.
-    all_files = self._file_manager.list_files()
+    all_files = self._file_manager.list_files(recursive=True)
     for dest in all_files.keys():
       self.unmark_all_pending(dest, all_files[dest])
 
@@ -736,6 +766,11 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     self.update_printer_config(strip_line)
     return line
 
+  ##~~ Printer connect hook
+  def printer_connect_hook(self, printer, *args, **kwargs):
+    self.apply_m73_override()
+    return None # Let OctoPrint handle the connection.
+
   ##~~ Softwareupdate hook
 
   def get_update_information(self):
@@ -775,5 +810,6 @@ def __plugin_load__():
       "octoprint.filemanager.analysis.factory": __plugin_implementation__.custom_gcode_analysis_queue,
       "octoprint.printer.estimation.factory": __plugin_implementation__.custom_estimation_factory,
       "octoprint.comm.protocol.gcode.sent": __plugin_implementation__.command_sent_hook,
-      "octoprint.comm.protocol.gcode.received": __plugin_implementation__.line_received_hook
+      "octoprint.comm.protocol.gcode.received": __plugin_implementation__.line_received_hook,
+      "octoprint.printer.handle_connect": __plugin_implementation__.printer_connect_hook,
   }

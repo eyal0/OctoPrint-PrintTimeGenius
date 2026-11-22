@@ -34,7 +34,7 @@ $(function() {
     self.original_processProgressData = self.printerStateViewModel._processProgressData;
     self.printerStateViewModel._processProgressData = function(data) {
       self.original_processProgressData(data);
-      if (data.printTimeLeft) {
+      if (data && data.printTimeLeft) {
         self.printerStateViewModel.progress(
             (data.printTime||0) /
               ((data.printTime||0) + (data.printTimeLeft))
@@ -109,6 +109,7 @@ $(function() {
       self.analyzers = printTimeGeniusSettings.analyzers;
       self.exactDurations = printTimeGeniusSettings.exactDurations;
       self.showStars = printTimeGeniusSettings.showStars;
+      self.overrideM73 = printTimeGeniusSettings.overrideM73;
       self.enableOctoPrintAnalyzer = printTimeGeniusSettings.enableOctoPrintAnalyzer;
       self.allowAnalysisWhilePrinting = printTimeGeniusSettings.allowAnalysisWhilePrinting;
       self.allowAnalysisWhileHeating = printTimeGeniusSettings.allowAnalysisWhileHeating;

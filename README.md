@@ -25,3 +25,7 @@ After first installing, you must run M503 in order to import your printer's conf
 In that text box, type M503 and click send.
 
 Next, you should test that the plugin works by going into settings and analyzing a file.  Then look at the log and make sure that there are no errors.  If you see errors, report them here.
+
+### OctoPrint 2.0 and M73
+
+OctoPrint 2.0 and later show the time remaining from the `M73` commands that many slicers add to the gcode instead of asking PrintTimeGenius.  So that PrintTimeGenius is used, it sets `trustM73` of OctoPrint's Serial Connector to false.  The printer still receives the `M73` commands.  You can turn this off in the settings with "Use PrintTimeGenius instead of M73 time remaining from the slicer".  If you uninstall PrintTimeGenius, remove `trustM73` under `plugins: serial_connector:` in `config.yaml` to restore OctoPrint's default.
