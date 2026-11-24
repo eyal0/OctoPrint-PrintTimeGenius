@@ -1,0 +1,167 @@
+name: Build pipeline
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: 🔨 Build distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: 🏗 Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      # setup.py needs OctoPrint at build time, so build without isolation
+      # instead of using OctoPrint/actions/build-dist.
+      - name: 🏗 Install build dependencies
+        run: |
+          pip install build setuptools wheel twine
+          pip install "octoprint~=2.0.0"
+      - name: 🔨 Build a binary wheel & an sdist tarball
+        run: |
+          python -m build --no-isolation .
+      # Not --strict: setup.py sets no long_description.
+      - name: 🔎 Check wheel and sdist with twine
+        run: |
+          twine check dist/*
+      - name: 🔎 Check wheel contents
+        run: |
+          unzip -l dist/*.whl | tee wheel.txt
+          grep -q "octoprint_PrintTimeGenius/analyzers/marlin-calc.x86_64" wheel.txt
+          grep -q "octoprint_PrintTimeGenius/templates/" wheel.txt
+          grep -q "octoprint_PrintTimeGenius/static/" wheel.txt
+      - name: ⬆ Upload build result
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist
+
+  test-install:
+    name: 🧪 Installation test (OctoPrint ${{ matrix.octoprint }}, Python ${{ matrix.python }})
+    strategy:
+      fail-fast: false
+      matrix:
+        octoprint: ["1.11", "2.0"]
+        python: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
+        exclude:
+          - octoprint: "1.11"
+            python: "3.14"
+          - octoprint: "1.11"
+            python: "3.15"
+    runs-on: ubuntu-24.04 # ubuntu-latest has no Python 3.9
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: 🏗 Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+          allow-prereleases: true
+      - name: 🏗 Install OctoPrint ${{ matrix.octoprint }}
+        run: |
+          pip install setuptools wheel
+          pip install "octoprint~=${{ matrix.octoprint }}.0"
+      # setup.py needs OctoPrint at build time, so install the way OctoPrint's
+      # plugin manager does for legacy plugin packages.
+      - name: 🚀 Install plugin
+        run: |
+          pip install --use-pep517 --no-build-isolation .
+      - name: 🔎 Import plugin
+        working-directory: ${{ runner.temp }}
+        run: |
+          python -c "import octoprint, octoprint_PrintTimeGenius as p; p.__plugin_load__(); print('OctoPrint', octoprint.__version__, 'loaded', p.__plugin_name__)"
+
+  test-unit:
+    name: 🧪 Unit tests (OctoPrint ${{ matrix.octoprint }}, Python ${{ matrix.python }})
+    strategy:
+      fail-fast: false
+      matrix:
+        octoprint: ["1.11", "2.0"]
+        python: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
+        exclude:
+          - octoprint: "1.11"
+            python: "3.14"
+          - octoprint: "1.11"
+            python: "3.15"
+    runs-on: ubuntu-24.04 # ubuntu-latest has no Python 3.9
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: 🏗 Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+          allow-prereleases: true
+      - name: 🏗 Set up test dependencies
+        run: |
+          pip install setuptools wheel pytest
+          pip install "octoprint~=${{ matrix.octoprint }}.0"
+          pip install --use-pep517 --no-build-isolation -e .
+      - name: 🚀 Run test suite
+        run: |
+          pytest -v | tee report.txt
+          pytest_exit=${PIPESTATUS[0]}
+
+          python=$(python -c 'import sys; print(".".join(map(str, sys.version_info[:3])))')
+          octoprint=$(python -c 'import octoprint; print(octoprint.__version__)')
+          summary=$(tail -n1 report.txt | sed 's/^=*\s//g' | sed 's/\s=*$//g')
+
+          cat << EOF >> $GITHUB_STEP_SUMMARY
+          ### Test Report
+
+          *OctoPrint $octoprint under Python $python*
+
+          <details>
+          <summary>$summary</summary>
+
+          \`\`\`
+          $(cat report.txt)
+          \`\`\`
+
+          </details>
+          EOF
+
+          exit $pytest_exit
+
+  test-e2e:
+    name: 🧪 E2E tests (OctoPrint ${{ matrix.octoprint }}, Python ${{ matrix.python }})
+    needs: build
+    runs-on: ubuntu-24.04 # ubuntu-latest has no Python 3.9
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - octoprint: "1.11.8"
+            python: "3.9"
+          - octoprint: "1.11.8"
+            python: "3.13"
+          - octoprint: "main"
+            python: "3.9"
+          - octoprint: "main"
+            python: "3.14"
+    steps:
+      - name: ⬇ Download build result
+        uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist
+
+      - name: 🎭 Run OctoPrint's E2E Tests
+        uses: OctoPrint/actions/e2e@main
+        with:
+          ref: ${{ matrix.octoprint }}
+          python: ${{ matrix.python }}
+          deps: ${{ github.workspace }}/dist/*.whl
+          suffix: "-${{ matrix.octoprint }}-py${{ matrix.python }}"
