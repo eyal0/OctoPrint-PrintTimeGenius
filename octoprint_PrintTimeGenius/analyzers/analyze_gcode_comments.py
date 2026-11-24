@@ -136,7 +136,7 @@ def process_cura330_filament(gcode_line):
 def process_cura1504_print_time(gcode_line):
   """Match Cura1504 time estimate"""
   ret = dd()
-  m = re.match(r'\s*;\s*Print time\s*:\s*([0-9.]+)\s*m\s+(.*)\s*', gcode_line)
+  m = re.match(r'\s*;\s*Print time\s*:\s*([0-9.]+\s*m)\s+(.*)\s*', gcode_line)
   if m:
     ret['estimatedPrintTime'] = process_time_text(m.group(1))
   return ret
