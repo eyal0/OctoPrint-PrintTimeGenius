@@ -655,9 +655,12 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
       if 'children' in v:
         self.unmark_all_pending(dest, v['children'])
 
-  ##~~ StartupPlugin API
+  ##~~ Plugin initialization
 
-  def on_startup(self, host, port):
+  def initialize(self):
+    """OctoPrint analyzes the startup backlog before calling on_startup, so the
+    engine log and printer config must be ready by now.
+    """
     # setup our custom logger
     from octoprint.logging.handlers import CleaningTimedRotatingFileHandler
     logging_handler = CleaningTimedRotatingFileHandler(self._settings.get_plugin_logfile_path(postfix="engine"), when="D", backupCount=3)
@@ -668,10 +671,6 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
     self._logger.propagate = False
 
     self._logger.info("Starting PrintTimeGenius")
-    # Unmark all pending analyses.
-    all_files = self._file_manager.list_files(recursive=True)
-    for dest in all_files.keys():
-      self.unmark_all_pending(dest, all_files[dest])
 
     # Get printer_config from printer_config.yaml
     printer_config_path = os.path.join(self.get_plugin_data_folder(),
@@ -683,8 +682,18 @@ class PrintTimeGeniusPlugin(octoprint.plugin.SettingsPlugin,
           self._current_config += line
     except IOError as e:
       if e.errno != errno.ENOENT:
-        raise
+        self._logger.exception("Failed to read {}".format(printer_config_path))
+    except Exception:
+      self._logger.exception("Failed to read {}".format(printer_config_path))
     self._old_printer_config = self._current_config.as_list()
+
+  ##~~ StartupPlugin API
+
+  def on_startup(self, host, port):
+    # Unmark all pending analyses.
+    all_files = self._file_manager.list_files(recursive=True)
+    for dest in all_files.keys():
+      self.unmark_all_pending(dest, all_files[dest])
 
   def save_settings(self):
     self._logger.info("Saving settings to config.yaml")
