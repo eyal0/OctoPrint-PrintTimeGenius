@@ -284,9 +284,29 @@ class GeniusAnalysisQueue(GcodeAnalysisQueue):
     except Exception as e:
       logger.warning("Failed to compensate", exc_info=e)
 
+  def _ensure_metadata_entry(self):
+    """OctoPrint 2.0+ only creates a metadata entry on upload when there is a
+    user or display name, and silently drops analysis results for files without
+    one, such as files from the watched folder.
+    """
+    file_manager = self._plugin._file_manager
+    if not hasattr(file_manager, "_storage"):
+      return
+    try:
+      storage = file_manager._storage(self._current.location)
+      if not all(hasattr(storage, x) for x in ("sanitize", "_get_metadata_entry", "_update_metadata_entry")):
+        return
+      folder, name = storage.sanitize(self._current.path)
+      if storage._get_metadata_entry(folder, name) is None:
+        self._plugin._logger.info("Creating missing metadata entry for {}".format(self._current.path))
+        storage._update_metadata_entry(folder, name, {})
+    except Exception as e:
+      self._plugin._logger.warning("Failed to create metadata entry", exc_info=e)
+
   def _do_analysis(self, high_priority=False):
     self._aborted = False
     logger = self._plugin._logger
+    self._ensure_metadata_entry()
     results = {'analysisPending': True}
     self._finished_callback(self._current, results)
     if self._plugin._settings.get(["enableOctoPrintAnalyzer"]):
