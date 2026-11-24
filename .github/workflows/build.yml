@@ -38,7 +38,7 @@ jobs:
             python: "3.14"
           - octoprint: "1.11"
             python: "3.15"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # ubuntu-latest has no Python 3.9
     steps:
       - uses: actions/checkout@v7
         with:
@@ -74,7 +74,7 @@ jobs:
             python: "3.14"
           - octoprint: "1.11"
             python: "3.15"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # ubuntu-latest has no Python 3.9
     steps:
       - uses: actions/checkout@v7
         with:
@@ -118,7 +118,7 @@ jobs:
   test-e2e:
     name: 🧪 E2E tests (OctoPrint ${{ matrix.octoprint }}, Python ${{ matrix.python }})
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # ubuntu-latest has no Python 3.9
     strategy:
       fail-fast: false
       matrix:
