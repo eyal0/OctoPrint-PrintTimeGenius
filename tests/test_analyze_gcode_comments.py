@@ -88,9 +88,6 @@ def test_cura330_filament_converts_meters(analyzer):
   assert result["filament"]["tool0"]["length"] == 2500
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "process_cura1504_print_time passes only the number to process_time_text, "
-    "dropping the unit, so the estimate is always 0"))
 def test_cura1504_print_time(analyzer):
   result = analyzer.process_cura1504_print_time(";Print time: 90 m whatever")
   assert result["estimatedPrintTime"] == 90 * 60
